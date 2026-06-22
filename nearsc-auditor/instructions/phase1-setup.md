@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor-setup
-version: "1.0"
+version: "1.1"
 author: Vini B (@vinibarbosabr)
 description: instructions for the nearsc-auditor Phase 1 - Setup. use it together with the orchestrator skill to setup the user enviornment when starting a NEAR smart contract audit in security research and bug bounty hunting activities.
 activation:
@@ -92,6 +92,7 @@ echo "=== END ==="
 ## Changelog
 
 - 2026-06-22: Create file
+- 2026-06-22: Skill simplified; complex execution becomes a python tool
 
 ---
 
