@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "resources/public-audits/burrowland/blocksec-audit-signed-1.md",
+                "file": "nearsc-auditor/instructions/phase1-setup.md",
                 "mode": "source",
-                "source": false
+                "source": true
               },
               "icon": "lucide-file",
-              "title": "blocksec-audit-signed-1"
+              "title": "phase1-setup"
             }
           }
         ]
@@ -183,7 +183,17 @@
   },
   "active": "2aa639c1bde2e66d",
   "lastOpenFiles": [
+    "nearsc-auditor/report-template.md",
+    "nearsc-auditor/instructions/phase1-setup.md",
+    "nearsc-auditor/tools/setup_audit.py~",
+    "nearsc-auditor/tools/setup_audit.py",
+    "nearsc-auditor/tools",
+    "nearsc-auditor/SKILL.md",
+    "nearsc-auditor/instructions",
     "resources/public-audits/burrowland/blocksec-audit-signed-1.md",
+    "README.md",
+    "study/near-vs-ethereum-token-approvals.md",
+    "nearsc-auditor",
     "resources/public-audits/burrowland/blocksec-audit-signed-1.pdf.md",
     "vinib-audits/linear/01-recon.md",
     "resources/public-audits/burrowland",
@@ -191,7 +201,6 @@
     "vinib-audits/linear",
     "study",
     "vinib-audits",
-    "resources",
     "Welcome.md"
   ]
 }

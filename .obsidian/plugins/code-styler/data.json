@@ -385,13 +385,15 @@
           "activeCodeblockLineColour": "--color-base-30",
           "activeEditorLineColour": "--color-base-20",
           "defaultColour": "--text-highlight-bg",
-          "alternativeHighlights": {}
+          "alternativeHighlights": {
+            "error": "#2DAB0AFF"
+          }
         },
         "inline": {
-          "backgroundColour": "#E8E8E8",
-          "textColour": "#020100",
-          "activeTextColour": "#001EE7",
-          "titleTextColour": "#0000FF"
+          "backgroundColour": "--code-background",
+          "textColour": "--code-normal",
+          "activeTextColour": "--code-normal",
+          "titleTextColour": "--code-comment"
         },
         "advanced": {
           "buttonColour": "--text-muted",
@@ -427,14 +429,16 @@
         "highlights": {
           "activeCodeblockLineColour": "--color-base-30",
           "activeEditorLineColour": "--color-base-20",
-          "defaultColour": "--text-highlight-bg",
-          "alternativeHighlights": {}
+          "defaultColour": "#FFD0001A",
+          "alternativeHighlights": {
+            "error": "#FF000038"
+          }
         },
         "inline": {
-          "backgroundColour": "#E8E8E8",
-          "textColour": "#020100",
-          "activeTextColour": "#001EE7",
-          "titleTextColour": "#0000FF"
+          "backgroundColour": "#FAFAFD",
+          "textColour": "#1B1201",
+          "activeTextColour": "#251902",
+          "titleTextColour": "--code-comment"
         },
         "advanced": {
           "buttonColour": "--text-muted",

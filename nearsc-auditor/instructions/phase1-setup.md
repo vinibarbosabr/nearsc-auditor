@@ -30,63 +30,65 @@ Request the user input for the following information when missing from prompt. B
 1. Project name
 2. Target repository (Github link)
 3. Bug bounty program (link)
-4. Audit's root directory (assume `~/vinib-audits/` if none is provided)
+4. Audit's root directory (assume `~/vinib-audits/nearsc` if none is provided)
 
 ### Step 3 - Setup Script
 
-Output inside a code block the following script to setup this audit's environment. The user (I, Vini) will copy and paste it directly into the terminal. It must be ready to copy, paste, and execute. Replace the placeholders accordingly. Use the proper language according to the user's spec defined below.
+Output inside a code block the following script to run the `setup_audit.py` tool for this project's audit (replace the placeholders).
+1. Go to the tool location: `cd ~/near-security-research/nearsc-auditor/tools/`
+2. Run the Python script
 
-#### Script methodology
-
-1. Clone the repository: `git clone "'github-link'"`
-2. Print (`echo`) the last commit (short SHA) and branch cloned
-3. Go to the audit's root directory: `cd ~/'root-directory'/` 
-4. Create the audit directory for this specific project: `mkdir nearsc-audit-'project-name'`
-5. Go to the now created directory: `cd nearsc-audit-'project-name'`
-6. Copy and rename the report template file to this directory: `cp ~/nearsc-auditor/report-template.md REPORT.md`
-7. Print (`echo`) project-specific information to the REPORT.md's executive summary, that I can then copy from the terminal and manually paste inside the file.
-	1. **Project:** <!-- project-name -->
-	2. **Repository:** <!-- org/repo --> 
-	3. **Commit:** <!-- short SHA --> 
-	4. **Branch:** <!-- branch name --> 
-	5. **Date:** <!-- YYYY-MM-DD --> 
-	6. **Auditor:** <!-- Agent or human name --> 
-	7. **Bug Bounty Program:** <!-- platform/program --> 
-	8. **Contract Address:** <!-- On-chain contract address --> 
-
-```bash
-git clone 'github-link' &&
-cd "$(basename 'github-link' .git)" &&
-BRANCH=$(git branch --show-current) &&
-COMMIT=$(git rev-parse --short HEAD) &&
-cd ~/'root-directory' &&
-mkdir -p nearsc-audit-'project-name' &&
-cd nearsc-audit-'project-name' &&
-cp ~/nearsc-auditor/report-template.md REPORT.md &&
-echo "" &&
-echo "✅ Audit folder created successfully." &&
-echo "" &&
-echo "=== COPY THE LINES BELOW INTO YOUR REPORT.md ===" &&
-echo "" &&
-echo "**Project:** 'project-name'" &&
-echo "**Repository:** 'github-link'" &&
-echo "**Commit:** $COMMIT" &&
-echo "**Branch:** $BRANCH" &&
-echo "**Date:** $(date +%Y-%m-%d)" &&
-echo "**Auditor:** Vini B" &&
-echo "**Bug Bounty Program:** 'bug-bounty-link'" &&
-echo "**Contract Address:** " &&
-echo "" &&
-echo "=== END ==="
+```Bash
+cd ~/near-security-research/nearsc-auditor/tools/ &&
+python setup_audit.py \
+  --project 'project-name' \
+  --repo 'https://github.com/org/repo' \
+  --bug-bounty 'https://platform.com/programs/project-name'
 ```
 
 #### Script Example
 
-```bash
-
+```Bash
+cd ~/near-security-research/nearsc-auditor/tools/ &&
+python setup_audit.py \
+  --project LiNEAR \
+  --repo https://github.com/linear-protocol/LiNEAR \
+  --bug-bounty https://hackenproof.com/programs/linear-protocol
 ```
 
-## User's Spec
+### Step 4 - Document Executive Summary & Specs
+
+Ask the user to paste the setup_audit.py output in the chat. This is important for proper documentation (we will use this information in other phases).
+
+#### User Input Example
+
+```Bash
+=== Setting up audit for: LiNEAR ===
+
+Cloning repository into audit folder...
+⚠️  /home/vinib/vinib-audits/nearsc/audit-LiNEAR/code already exists. Skipping clone.
+
+✅ Audit environment created successfully!
+📁 Audit folder: /home/vinib/vinib-audits/nearsc/audit-LiNEAR
+📄 REPORT.md has been updated with the executive summary.
+
+=== REPORT.md - Executive Summary ===
+
+## 1. Executive Summary
+
+**Project:** LiNEAR
+**Repository:** https://github.com/linear-protocol/LiNEAR
+**Commit:** 63cd09a
+**Branch:** main
+**Date:** 2026-06-22
+**Auditor:** Vini B
+**Bug Bounty Program:** https://hackenproof.com/programs/linear-protocol
+**Contract Address:**
+
+### Abstract
+
+=== END ===
+```
 
 
 ## Changelog

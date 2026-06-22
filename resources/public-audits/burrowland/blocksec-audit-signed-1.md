@@ -189,4 +189,92 @@ if current_storage_usage > liquidation_storage.initial_storage_usage {
 #### 2.2.2 Storage usage is wrong in setting users' storage
 
 **Status** Fixed
-**Description** This issue is introduced in or before the initial commit. The `env::storage_usage()` returns the storage
+**Description** This issue is introduced in or before the initial commit. The `env::storage_usage()` returns the storage usage of the whole contract while the `storage.initial_storage_usage` in line 78 is for one account. Comparing these two values does not make sense. The calculated `extra_bytes_used` in line 79 includes all the other accounts' used storage and should not be added into the `storage.used_bytes` in line 80. Here the logic is wrong.
+
+```Rust title:action.rs ln:76 hl:84
+pub fn internal_set_storage(&mut self, account_id: &AccountId, mut storage: Storage) {
+	let storage_usage = env::storage_usage();
+	if storage_usage > storage.initial_storage_usage {
+		let extra_bytes_used = storage_usage - storage.initial_storage_usage;
+		storage.used_bytes += extra_bytes_used;
+		storage.assert_storage_covered();
+	} else {
+		let bytes_released = storage.initial_storage_usage - storage_usage;
+		assert!(
+		storage.used_bytes >= bytes_released
+		"Internal storage accounting bug"
+		);
+		storage.used_bytes -= bytes_released;
+	}
+	self.storage.insert(account_id, &storage.into());
+}
+```
+
+**Impact** The logic of setting the storage usage for each account is wrong, which can influence the storage usage of users.
+**Suggestion I** Re-implement the whole logic.
+
+#### 2.2.3 Incomplete asset configuration check
+
+**Status** Fixed
+**Description** This issue is introduced in or before the initial commit. In function `update_asset`, `assert_valid` is invoked to check whether the updated configuration is valid.
+
+```Rust title:config.rs ln:77
+#[payable]
+pub fn update_asset(&mut self, token_id: ValidAccountId, asset_config: AssetConfig) {
+	assert_one_yocto();
+	asset_config.assert_valid();
+	self.assert.owner();
+	let mut asset = self.internal_unwrap_asset(token_id,as_ref());
+	asset.config = asset_confg;
+	self.internal_set_asset(token_id.as_ref(), asset);
+}
+```
+
+However, the validation check is incomplete. For example, the `extra_decimal` should be the same as the original one and cannot be changed. Meanwhile, the `volatility_ratio` should be within 0-10000.
+
+```Rust title:asset_config.rs ln:66
+pub fn assert_valid(&self) {
+	assert!(self.reserve_ratio <= MX_RATIO);
+	assert!(self.target_utilization < MAX_POS);
+	assert!(self.target_utilization_rate.0 <= self.max_utilization_rate.0);
+}
+```
+
+**Impact** The updated `asset_config` may not be valid
+**Suggestion I** Add the check for the attribute `extra_decimal` and `volatility_ratio`
+
+#### 2.2.4 The freshness of PriceData should be checked
+
+**Status** Fixed
+**Description** `PriceData.timestamp` and `PriceData.recency_duration_sec` are unchecked when `PriceData` is converted into `Prices`
+
+```Rust title:common/src/lib.rs ln:24
+pub struct PriceData {
+	#[serde(with = "u64_dec_format")]
+	pub timestamp: Timestamp,
+	pub recency_duration_sec: DurationSec,
+	
+	pub prices: Vec<AssetOptionalPrice>,
+}
+```
+
+It is recommended to add a reasonable threshold to check the freshness of `PriceData` received from the price oracle.
+
+```Rust title:price.rs ln:19
+impl From<PriceData> for Prices {
+	fn from(data: PriceData) -> Self {
+		Self {
+			prices: data
+			.prices
+			.into_iter()
+			.filter_map(|AssetOptionalPrice { asset_id, price }| {
+				price.map(|price| (asset_id, price))
+			})
+			.collect(),
+		}
+	}
+}
+```
+
+**Impact** The received `PriceData` may be outdated
+**Suggestion I** Add a reasonable threshold to check the freshness of `PriceData`
