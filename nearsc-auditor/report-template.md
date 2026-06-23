@@ -25,10 +25,10 @@
 
 ### Core Questions
 
-**1. What is this contract supposed to do?**
+**A. What is this contract supposed to do?**
 <!-- contract type (DEX/lending/DAO/oracle), what are the main actors involved (who calls the functions), and a brief summary on what it is supposed to do -->
 
-**2. What is this contract NOT supposed to do?**
+**B. What is this contract NOT supposed to do?**
 <!-- potential exploits that could be performed against this type of contract, setting the baseline for some potential hypotheses -->
 
 ### ...

@@ -56,7 +56,7 @@ python setup_audit.py \
   --bug-bounty https://hackenproof.com/programs/linear-protocol
 ```
 
-### Step 4 - Document Executive Summary & Specs
+### Step 4 - Document Executive Summary
 
 Ask the user to paste the setup_audit.py output in the chat. This is important for proper documentation (we will use this information in other phases).
 
@@ -90,6 +90,9 @@ Cloning repository into audit folder...
 === END ===
 ```
 
+### Step 5 - Confirm "Phase 1 - Setup" Completion
+
+Confirm "Phase 1 - Setup" has been completed and ask the user if they want to start "Phase 2 - Recon" according to the `instructions/phase2-recon.md` skill.
 
 ## Changelog
 
