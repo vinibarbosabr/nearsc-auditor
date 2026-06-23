@@ -25,6 +25,9 @@ Read the SKILL.md file (orchestrator skill) again to understand and internalize 
 
 ### Step 2 - User Input
 
+Print current status as requires by the orchestrator:
+==PHASE 1, STEP 2, TASK 1 — YYYY-MM-DD HH:MM:SS==
+
 Request the user input for the following information when missing from prompt. Before requesting, check in the chat if they already exist.
 
 1. Project name

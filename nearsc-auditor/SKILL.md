@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor
-version: "1.0"
+version: "1.2"
 author: Vini B (@vinibarbosabr)
 description: orchestrator skill to audit NEAR smart contracts for security research and bug bounty hunting activities. this is the starting point for all audits.
 activation:
@@ -17,13 +17,14 @@ tags:
 
 **Description:** This is the starting point for all audits. It's an orchestrator skill to audit NEAR smart contracts for security research and bug bounty hunting activities.
 
-Read it first and before every new step, phase, or task.
+Read it first and while starting every new phase.
 
 ## Execution Steps (nearsc-auditor)
 
 1. Read this entire SKILL.md file first
 2. Say you are ready to start auditing 'project-name' if this is the first time executing this skill in a project audit.
-3. Always output the current status of the project: "PHASE 'X', STEP 'Y', TASK 'Z'" and the current timestamp "'YYYY-MM-DD HH:MM:SS'" for proper documentation. Do it every time you read this skill.
+3. Always output the current status of the project: "PHASE 'X', STEP 'Y', TASK 'Z'" and the current timestamp "'YYYY-MM-DD HH:MM:SS'" for proper documentation. Do it every time you read this skill. Example:
+==PHASE 1, STEP 2, TASK 1 — YYYY-MM-DD HH:MM:SS==
 4. Identify the current status and use the respective instructions inside `instructions/`, ignore other instructions unless explicitly requested by the user.
 
 ## Core Premises
@@ -41,6 +42,7 @@ Read it first and before every new step, phase, or task.
 - Always assume there are bugs and/or exploitable vulnerabilities. If we haven't found any, it's probably because we missed something.
 - Final output to the user must be token-efficient. You need to focus your efforts and token usage into the tasks and cached resources themselves. User output in the chat must be clean and concise.
 - Placeholders go inside ''. Example: 'placeholder-example'.
+- Templates that go as: "Example Output" or "Output Example" are just that: **EXAMPLES**. You need to adapt each analyses and output according to each project and its respective particularities.
 ## Methodology
 
 - The auditing process will be phased and done in a hybrid approach (AI + HUMAN). We will work together (you, Grok + I, Vini, the user).
@@ -99,6 +101,7 @@ Read it first and before every new step, phase, or task.
 ## Changelog
 
 - 2026-06-22: Create skill
+- 2026-06-23 (v1.2): Add "Template" premise for "Example Outputs" and other minor fixes.
 
 ---
 File created on 2026-06-22
