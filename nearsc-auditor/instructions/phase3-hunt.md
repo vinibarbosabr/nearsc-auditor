@@ -141,7 +141,7 @@ You will repeat this same methodology for each task (pattern).
 
 #### Output
 
-Say you are ready to start the next TASK and ask for user confirmation, mentioning the TASK number, attack vector, and resource used.
+Say you are ready to start the next TASK and ask for user confirmation, mentioning the TASK number, attack vector, and resource needed. Wait for the user to confirm and upload the requested file.
 
 While doing each TASK:
 
