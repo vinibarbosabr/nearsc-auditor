@@ -35,6 +35,8 @@ Check the session's chat to confirm "Phase 2 - Recon" has been completed. If not
 
 Else, move to "Phase 3 - Hunt" Step 3 below.
 
+You **should NOT create any strong biases yet!**
+
 ### Step 3 - Review the Initial Checklist Results
 
 Make sure the user has gone through the initial checklist manually from "Phase 2 - Recon" and covered all the items there over the first hypotheses based on quickly identified known attack patterns.

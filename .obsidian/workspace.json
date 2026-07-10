@@ -8,21 +8,21 @@
         "type": "tabs",
         "children": [
           {
-            "id": "2aa639c1bde2e66d",
+            "id": "30bb57184f6c7a11",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "nearsc-auditor/instructions/phase1-setup.md",
+                "file": "nearsc-auditor/instructions/phase2-recon.md",
                 "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "phase1-setup"
+              "title": "phase2-recon"
             }
           },
           {
-            "id": "30bb57184f6c7a11",
+            "id": "14f66820a80f0b99",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -196,27 +196,36 @@
       "bases:Create new base": false
     }
   },
-  "active": "30bb57184f6c7a11",
+  "active": "14f66820a80f0b99",
   "lastOpenFiles": [
-    "nearsc-auditor/instructions/phase1-setup.md",
-    "nearsc-auditor/SKILL.md",
+    "nearsc-auditor/tmp/mv-phase2-to-phase3-and-phase4.md",
     "nearsc-auditor/instructions/phase2-recon.md",
+    "nearsc-auditor/tmp",
+    "nearsc-auditor/instructions/phase3-hunt.md",
+    "nearsc-auditor/SKILL.md",
+    "nearsc-auditor/instructions/phase1-setup.md",
+    "resources/public-reports/sputnikdao2/storage_withdraw-issue-239-carrotrust.md",
+    "resources/public-reports/linear-protocol/Smart Contract Code Review and Security Analysis Report for LiNEAR.md",
+    "resources/public-reports/burrowland/blocksec-audit-signed-1.md",
+    "resources/public-reports/sputnikdao2",
+    "resources/public-reports/linear-protocol/BlockSec - Security Audit Report for LiNEAR - 202204.md",
+    "resources/checklists/storage-cost-attacks.md",
+    "resources/checklists/checklist.md",
+    "resources/checklists/Untitled",
+    "resources/checklists",
+    "Pasted image 20260630092009.png",
+    "resources/public-reports/burrowland/blocksec-audit-signed-2.md",
+    "resources/public-reports/linear-protocol",
+    "README.md",
     "nearsc-auditor/report-template.md",
     "nearsc-auditor/tools/setup_audit.py~",
     "nearsc-auditor/tools/setup_audit.py",
     "nearsc-auditor/tools",
     "nearsc-auditor/instructions",
-    "resources/public-audits/burrowland/blocksec-audit-signed-1.md",
-    "README.md",
     "study/near-vs-ethereum-token-approvals.md",
     "nearsc-auditor",
     "resources/public-audits/burrowland/blocksec-audit-signed-1.pdf.md",
     "vinib-audits/linear/01-recon.md",
-    "resources/public-audits/burrowland",
-    "resources/public-audits",
-    "vinib-audits/linear",
-    "study",
-    "vinib-audits",
     "Welcome.md"
   ]
 }
