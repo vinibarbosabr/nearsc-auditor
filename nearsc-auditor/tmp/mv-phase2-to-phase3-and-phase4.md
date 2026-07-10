@@ -121,3 +121,6 @@ Finish with a recommended focus order for phase 3.
 - YYYY-MM-DD: Notes created.
 
 --- END: recon-notes-atk.md ---
+
+STEP X -- ATTACK 
+

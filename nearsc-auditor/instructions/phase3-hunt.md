@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor-hunt
-version: "1.0"
+version: "1.1"
 author: Vini B (@vinibarbosabr)
 description: instructions for the nearsc-auditor Phase 3- Hunt. use it together with the orchestrator skill to hunt for vulnerabilities and checklist patterns in its source code for a NEAR smart contract audit in security research and bug bounty hunting activities.
 activation:
@@ -35,26 +35,108 @@ Check the session's chat to confirm "Phase 2 - Recon" has been completed. If not
 
 Else, move to "Phase 3 - Hunt" Step 3 below.
 
-You **should NOT create any strong biases yet!**
+You **should have NOT created any strong biases yet!**
+We were just doing recognition. The real hunt starts now.
 
-### Step 3 - Review the Initial Checklist Results
+### Step 3 - Hunt for Security Checklist
 
-Make sure the user has gone through the initial checklist manually from "Phase 2 - Recon" and covered all the items there over the first hypotheses based on quickly identified known attack patterns.
+Read the NEAR smart contract security checklist in the file `resources/near-docs/checklist.md`.
 
-Request more details on any interesting finding and internalize that as we move for a more in-depth approach on each item.
+Make a checklist adapted for this target, organized by categories and items.
 
-Understand that this initial draft is still incomplete and could have both false positives and false negatives. We need to do a lot more work and **should NOT create any strong biases yet!**
+Then, make a list for each checklist item with a respective suggested ripgrep (`rg`) command for the user to later execute and verify your audit. The command is optimized for this target and should include key words and sentence patterns, depth, files, and other specifications that will help with the checking.
 
-### Step 4 - Plan and Structure the Hunting
+Audit the target's code base carefully, having this security checklist in mind. Looks for checklist misses. Functions, types, and execution paths that have missed these items is what we are hunting for in this step. This is where the low-hanging fruits will be.
 
-Moving forward, we will dive into each checklist item independently or (when possible) delegate unique agents (or sub-agents) for specific hunting work at each item for more efficient token usage and context management.
+Share your findings in detail with the user
 
-Agents must read the respective resource material for each checklist item and do the proper, careful verification against keywords and code patterns through the entire project's code base and contracts' source code.
+#### Output
+1. **Checklist** organized by category and item,
+2. **Command List** for each item with its respective `rg` command to be executed by the user,
+3. **Table 1: Checklist Findings**, ranked by severity, your checklist-based findings, affected elements (functions, types, etc), affected files, and impact hypothesis
+4. **Recommendations** any recommendation you may have for hunting more checklist-based vulnerabilities for this project in particular
 
-Read the NEAR Security Checklist file (`nearsc-auditor/resources/checklists/checklist.md`) first, for a broader overview before organizing the sub agents and delegating their tasks.
+#### Output Example
+--- START: hunt-notes-check.md ---
+==PHASE 3, STEP 3, TASK 1 — YYYY-MM-DD HH:MM:SS==
 
-Output your own checklist for this project in particular and set priority checks (high, medium, low priority) with suggested key words, patterns, or any other specifics that are relevant for the contract we are currently auditing. You can use the user's findings from Phase 2 but do not limit yourself by them.
+**NEAR SC Auditor – Hunt Notes Checklist**
+**Project:** 'project-name'
+**Version:** 1.0 
+
+**Checklist**
+1. [ ] All Private Methods Are Decorated as `private`
+2. [ ] `predecessor` and `signer` Are Used Correctly
+3. [ ] State Growth Has Sufficient Balance Coverage
+4. [ ] All Collections Have Unique IDs
+5. [ ] Check for Underflow and Overflow
+6. [ ] Leave Enough Balance for Storage Costs
+7. [ ] Deduct User Funds Before Sending
+8. [ ] All Private Callbacks Are Marked as `private`
+9. [ ] All Cross-Contract Calls Have Callbacks
+10. [ ] Callbacks Check for Errors and Roll Back State
+11. [ ] Callbacks Return Money to Predecessor If Necessary
+12. [ ] Callbacks Are Free of `panic!`
+13. [ ] Callbacks Have Sufficient GAS
+14. [ ] Contract Not Left in Exploitable State Between Call and Callback
+
+**Command List for manual verification**
+1. All Private Methods Are Decorated as `private`
+```Bash
+rg # suggested ripgrep commmand syntax with keywords and other specifications
+```
+
+2. `predecessor` and `signer` Are Used Correctly
+```Bash
+rg # suggested ripgrep commmand syntax with keywords and other specifications
+```
+
+3. ...
+
+**TABLE 1: Checklist Findings**
+
+<!-- 2-4 paragraph summary of your findings and relevant observations -->
+
+| Severity                 | Finding            | Affected Elements                           | Affected Files                              | Impact                                |     |
+| ------------------------ | ------------------ | ------------------------------------------- | ------------------------------------------- | ------------------------------------- | --- |
+| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| ...                      | ...                | ...                                         | ...                                         | ...                                   |     |
+
+**Recommendations**
+<!-- 2-3 paragraph recommendations for hunting more checklist-based vulnerabilities for this project in particular -->
+
+**Changelog:**
+- YYYY-MM-DD: Notes created.
+
+--- END: hunt-notes-check.md --
+
+### Step 4 - Hunt for Security Patterns
+
+Moving forward, we will dive into security patterns independently or (when possible) delegate unique agents (or sub-agents) for specific hunting work at each pattern for more efficient token usage and context management.
+
+Agents must read the respective resource material for each security pattern and do the proper, careful verification against keywords and code patterns through the entire project's code base and contracts' source code.
+
+Organize and plan this hunt according to known attack vectors and patterns based on `resources/near-docs` files (per pattern, listed below), PLUS public findings we studied on Phase 2, documented at `recon-notes-find.md`. Give special attention to findings that weren't fully fixed (mitigated, accepted, ignored, etc) and for recent changes that might have reverted previous fixes.
+
+
+
+
+
+
+
+Output a focused checklist for each pattern, thought for this project in particular, and set priority checks (high, medium, low priority) with suggested key words, patterns, or any other specifics that are relevant for the contract we are currently auditing. You can use the user's findings from Phase 2 but do not limit yourself by them.
 
 **IMPORTANT:** The user can make mistakes and/or miss things.
 
 ### Step 5 - 
+
+
+## Changelog
+
+- 2026-06-22: Create file
+- 2026-07-10: Build instructions until Step 4 (incomplete)
+
+---
+
+File created on 2026-06-22

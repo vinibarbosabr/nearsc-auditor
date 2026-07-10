@@ -209,7 +209,7 @@ Output a report with your findings that must include:
 --- START: recon-notes-find.md ---
 ==PHASE 2, STEP 6, TASK 1 — YYYY-MM-DD HH:MM:SS==
 
-**NEAR SC Auditor – Recon Notes Execution**
+**NEAR SC Auditor – Recon Notes Public Findings**
 **Project:** 'project-name'
 **Version:** 1.0 
 
