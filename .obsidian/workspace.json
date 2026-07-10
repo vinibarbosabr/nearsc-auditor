@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "resources/near-docs/checklist.md",
+                "file": "resources/near-docs/security-checklist.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "checklist"
+              "title": "security-checklist"
             }
           },
           {
@@ -198,19 +198,20 @@
   },
   "active": "14f66820a80f0b99",
   "lastOpenFiles": [
+    "nearsc-auditor/instructions/phase1-setup.md",
     "nearsc-auditor/instructions/phase2-recon.md",
     "nearsc-auditor/instructions/phase3-hunt.md",
+    "resources/near-docs/security-checklist.md",
+    "resources/near-docs/security",
+    "resources/near-docs/security-storage.md",
     "nearsc-auditor/tmp/mv-phase2-to-phase3-and-phase4.md",
     "resources/severity/cvss-4.0.md",
     "resources/severity/hackenproof-vuln-class-scs.md",
     "resources/severity",
     "resources/cl.md",
     "resources/vulnerability.md",
-    "resources/near-docs/checklist.md",
-    "resources/near-docs/storage-cost-attacks.md",
     "nearsc-auditor/tmp",
     "nearsc-auditor/SKILL.md",
-    "nearsc-auditor/instructions/phase1-setup.md",
     "resources/public-reports/sputnikdao2/storage_withdraw-issue-239-carrotrust.md",
     "resources/public-reports/linear-protocol/Smart Contract Code Review and Security Analysis Report for LiNEAR.md",
     "resources/public-reports/burrowland/blocksec-audit-signed-1.md",
@@ -226,7 +227,6 @@
     "nearsc-auditor/tools/setup_audit.py~",
     "nearsc-auditor/tools/setup_audit.py",
     "nearsc-auditor/tools",
-    "nearsc-auditor/instructions",
     "study/near-vs-ethereum-token-approvals.md",
     "resources/public-audits/burrowland/blocksec-audit-signed-1.pdf.md",
     "vinib-audits/linear/01-recon.md",

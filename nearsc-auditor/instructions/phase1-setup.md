@@ -95,7 +95,7 @@ Cloning repository into audit folder...
 
 ### Step 5 - Confirm "Phase 1 - Setup" Completion
 
-Confirm "Phase 1 - Setup" has been completed and ask the user if they want to start "Phase 2 - Recon" according to the `instructions/phase2-recon.md` skill.
+Confirm "Phase 1 - Setup" has been completed and ask the user if they want to start "Phase 2 - Recon" according to the `instructions/phase2-recon.md` skill. Ask the user to upload this file.
 
 ## Changelog
 

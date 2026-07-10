@@ -244,9 +244,9 @@ Output a report with your findings that must include:
 
 ### Step 7 - Confirm "Phase 2- Recon" Completion
 
-Confirm "Phase 2 - Recon" has been completed and ask the user if they want to start "Phase 3 - Hunt" according to the `instructions/phase3-hunt.md` skill.
+Confirm "Phase 2 - Recon" has been completed and ask the user if they want to start "Phase 3 - Hunt" according to the `instructions/phase3-hunt.md` skill. Ask the user to upload this file.
 
-IMPORTANT: You **should NOT create any strong biases yet!** This was just the recon phase and we must remain open to what we might find and validate during the next phases.
+IMPORTANT: You **should NOT create any strong biases yet!** This was just the recon phase and we must remain open to what we might find and validate during the next phases. 
 
 ## Changelog
 

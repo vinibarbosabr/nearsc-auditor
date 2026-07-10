@@ -40,7 +40,7 @@ We were just doing recognition. The real hunt starts now.
 
 ### Step 3 - Hunt for Security Checklist
 
-Read the NEAR smart contract security checklist in the file `resources/near-docs/checklist.md`.
+Read the NEAR smart contract security checklist in the file `resources/near-docs/security-checklist.md`.
 
 Make a checklist adapted for this target, organized by categories and items.
 
@@ -117,25 +117,165 @@ Moving forward, we will dive into security patterns independently or (when possi
 
 Agents must read the respective resource material for each security pattern and do the proper, careful verification against keywords and code patterns through the entire project's code base and contracts' source code.
 
-Organize and plan this hunt according to known attack vectors and patterns based on `resources/near-docs` files (per pattern, listed below), PLUS public findings we studied on Phase 2, documented at `recon-notes-find.md`. Give special attention to findings that weren't fully fixed (mitigated, accepted, ignored, etc) and for recent changes that might have reverted previous fixes.
+Organize and plan this hunt according to known attack vectors and patterns based on `resources/near-docs/<atk-pattern.md>` files (per pattern, listed below), PLUS public findings we studied on Phase 2, documented at `recon-notes-find.md`. Give special attention to findings that weren't fully fixed (mitigated, accepted, ignored, etc) and for recent changes that might have reverted previous fixes.
+
+Generate a focused checklist for each pattern, thought for this project in particular, and set priority checks (high, medium, low priority) with suggested key words, patterns, or any other specifics that are relevant for the contract we are currently auditing.
+
+Each attack pattern will initiate its own TASK following user's confirmation. When you end a task (pattern), output accordingly and ask the user confirmation before starting the next TASK.
+#### Attack Patterns (TASKS)
+- Storage Cost Attacks → `security-storage.md`
+- Cross-Contract Calls → `security-callbacks.md`
+- Ensure it is the User (1yⓃ) → `security-one_yocto.md`
+- Sybil Attacks → `security-sybil.md`
+- Front Running → `security-frontrunning.md`
+- Reentrancy Attacks → `security-reentrancy.md`
+- Random Numbers → `security-random.md`
+- 'Non-Fixed Public Finding 1' → `recon-notes-find.md`
+- 'Non-Fixed Public Finding 2' → `recon-notes-find.md`
+- 'Reverted Fix Bug 1' → `recon-notes-find.md`
+- etc...
+
+The task completion will require a pattern-focused audit and vulnerability hunt against the target, a table with your findings, a checklist with suggested commands for manual verification (by the user), and notable observations for Phase 4 - Attack.
+
+You will repeat this same methodology for each task (pattern).
+
+#### Output
+
+Say you are ready to start the next TASK and ask for user confirmation, mentioning the TASK number, attack vector, and resource used.
+
+While doing each TASK:
+
+1. **Initiate** TASK X,
+2. **Findings**, a 2-4 paragraph summary describing your findings.
+3. **TABLE 1: Findings**, ranked by severity, the finding, affected elements (functions, types, macros, etc), affected files, impact hypothesis,
+4. **Checklist**, with suggested ripgrep commands for user-driven, manual verification locally
+5. **Notable observations** and recommendations for the Attack phase (Phase 4)
+
+#### Output Example
+
+--- START: hunt-notes-patt-1.md ---
+==PHASE 3, STEP 4, TASK 1 — YYYY-MM-DD HH:MM:SS==
+
+**NEAR SC Auditor – Hunt Notes Patterns**
+**Project:** 'project-name'
+**Version:** 1.0 
+
+**Initiating** 'TASK 1' hunting for 'Storage Cost Attack' patterns.
+
+**Resources**: '`security-storage.md`'
+
+**TABLE 1: Pattern Findings**
+
+<!-- 2-4 paragraph summary of your findings and relevant observations -->
+
+| Severity                 | Finding            | Affected Elements                           | Affected Files                              | Impact                                |     |
+| ------------------------ | ------------------ | ------------------------------------------- | ------------------------------------------- | ------------------------------------- | --- |
+| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| ...                      | ...                | ...                                         | ...                                         | ...                                   |     |
 
 
+**Checklist**
+1. [ ] 'Checklist Item 1'
+2. [ ] 'Checklist Item 2'
+3. [ ] ...
+
+**Command List for manual verification**
+1. 'Checklist Item 1'
+```Bash
+rg # suggested ripgrep commmand syntax with keywords and other specifications
+```
+
+2. 'Checklist Item 2'
+```Bash
+rg # suggested ripgrep commmand syntax with keywords and other specifications
+```
+
+3. ...
 
 
+**Notable Observations**
+<!-- 2-3 paragraph with notable observations and recommendations for hunting more checklist-based vulnerabilities for this project in particular -->
+
+**Changelog:**
+- YYYY-MM-DD: Notes created.
+
+--- END: hunt-notes-patt-1.md --
+
+### Step 5 - Go Deeper: Zero-Day Hunt
+
+While many vulnerabilities will be on the surface, with obvious misses from security checklists and known attack patterns/vectors, the largest rewards are in the depths of zero-day vulnerabilities.
+
+For that, we will need a bit of creativity and to dive deeper into the unknown.
+
+Read recon notes from function execution paths (`recon-notes-exec.md`) and find broken assumptions, bad executions, misbehavior, and divergences from what is documented (intended) and what may actually happen if an ATTACKER calls a function with malicious intent.
+
+Make me proud!
+
+#### Output
+Use the same output template from Step 4. It should include:
+
+1. **Findings**, a 2-4 paragraph summary describing your findings.
+2. **TABLE 1: Findings**, ranked by severity, the finding, affected elements (functions, types, macros, etc), affected files, impact hypothesis,
+3. **Checklist**, with suggested ripgrep commands for user-driven, manual verification locally
+4. **Notable observations** and recommendations for the Attack phase (Phase 4)
+
+#### Output Example
+
+--- START: hunt-notes-zero.md ---
+==PHASE 3, STEP 5, TASK 1 — YYYY-MM-DD HH:MM:SS==
+
+**NEAR SC Auditor – Hunt Notes Zero-Day**
+**Project:** 'project-name'
+**Version:** 1.0 
+
+**Findings**
+<!-- 2-4 paragraph summary of your findings and relevant observations -->
+
+**TABLE 1: Zero-day Findings**
+
+| Severity                 | Finding            | Affected Elements                           | Affected Files                              | Impact                                |     |
+| ------------------------ | ------------------ | ------------------------------------------- | ------------------------------------------- | ------------------------------------- | --- |
+| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| ...                      | ...                | ...                                         | ...                                         | ...                                   |     |
 
 
+**Checklist**
+1. [ ] 'Checklist Item 1'
+2. [ ] 'Checklist Item 2'
+3. [ ] ...
 
-Output a focused checklist for each pattern, thought for this project in particular, and set priority checks (high, medium, low priority) with suggested key words, patterns, or any other specifics that are relevant for the contract we are currently auditing. You can use the user's findings from Phase 2 but do not limit yourself by them.
+**Command List for manual verification**
+1. 'Checklist Item 1'
+```Bash
+rg # suggested ripgrep commmand syntax with keywords and other specifications
+```
 
-**IMPORTANT:** The user can make mistakes and/or miss things.
+2. 'Checklist Item 2'
+```Bash
+rg # suggested ripgrep commmand syntax with keywords and other specifications
+```
 
-### Step 5 - 
+3. ...
 
+
+**Notable Observations**
+<!-- 2-3 paragraph with notable observations and recommendations for hunting more checklist-based vulnerabilities for this project in particular -->
+
+**Changelog:**
+- YYYY-MM-DD: Notes created.
+
+--- END: hunt-notes-zero.md --
+
+### Step 6 - Confirm "Phase 3- Hunt" Completion
+
+Confirm "Phase 3 - Hunt" has been completed and ask the user if they want to start "Phase 4 - Attack" according to the `instructions/phase4-attack.md` skill. Ask the user to upload this file.
 
 ## Changelog
 
 - 2026-06-22: Create file
-- 2026-07-10: Build instructions until Step 4 (incomplete)
+- 2026-07-10: Build instructions (completed)
 
 ---
 
