@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor-recon
-version: "1.1"
+version: "1.2"
 author: Vini B (@vinibarbosabr)
 description: instructions for the nearsc-auditor Phase 2 - Recon. use it together with the orchestrator skill to map and understand the project and its source code for a NEAR smart contract audit in security research and bug bounty hunting activities.
 activation:
@@ -140,6 +140,7 @@ IMPORTANT: You **should NOT create any strong biases yet!** This was just the re
 
 - 2026-06-22: Create file
 - 2026-06-23: Improve templates on "example outputs" to be more general and prevent AI bias to certain patterns
+- 2026-07-10 (v1.2): Move v1.1 Steps 5-6 to /tmp/ directory for future reallocation to Phases 3-4 for better fit
 
 ---
 
