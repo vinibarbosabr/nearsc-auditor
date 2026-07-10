@@ -179,6 +179,8 @@
   },
   "active": "0d5079f8e8fb0a90",
   "lastOpenFiles": [
+    "resources/templates/report-template.md",
+    "resources/templates",
     "resources/near-docs/security-checklist.md",
     "instructions/phase3-hunt.md",
     "README.md",
@@ -213,8 +215,6 @@
     "resources/public-reports/linear-protocol",
     "nearsc-auditor/tools/setup_audit.py~",
     "tools/setup_audit.py",
-    "tools",
-    "study/near-vs-ethereum-token-approvals.md",
-    "resources/public-audits/burrowland/blocksec-audit-signed-1.pdf.md"
+    "study/near-vs-ethereum-token-approvals.md"
   ]
 }
