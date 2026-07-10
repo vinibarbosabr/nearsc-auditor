@@ -22,10 +22,11 @@ Read it first and while starting every new phase.
 ## Execution Steps (nearsc-auditor)
 
 1. Read this entire SKILL.md file first
-2. Say you are ready to start auditing 'project-name' if this is the first time executing this skill in a project audit.
-3. Always output the current status of the project: "PHASE 'X', STEP 'Y', TASK 'Z'" and the current timestamp "'YYYY-MM-DD HH:MM:SS'" for proper documentation. Do it every time you read this skill. Example:
+2. Read the README.md file to understand the stack you are working with
+3. Say you are ready to start auditing 'project-name' if this is the first time executing this skill in a project audit.
+4. Always output the current status of the project: "PHASE 'X', STEP 'Y', TASK 'Z'" and the current timestamp "'YYYY-MM-DD HH:MM:SS'" for proper documentation. Do it every time you read this skill. Example:
 ==PHASE 1, STEP 2, TASK 1 — YYYY-MM-DD HH:MM:SS==
-4. Identify the current status and use the respective instructions inside `instructions/`, ignore other instructions unless explicitly requested by the user.
+5. Identify the current status and use the respective instructions inside `instructions/`, ignore other instructions unless explicitly requested by the user.
 
 ## Core Premises
 
