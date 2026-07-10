@@ -11,10 +11,14 @@
             "id": "a62d3c5eea387472",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "instructions/phase4-attack.md",
+                "mode": "source",
+                "source": true
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "phase4-attack"
             }
           }
         ]
@@ -177,12 +181,15 @@
       "bases:Create new base": false
     }
   },
-  "active": "0d5079f8e8fb0a90",
+  "active": "a62d3c5eea387472",
   "lastOpenFiles": [
+    "SKILL.md",
+    "instructions/phase4-attack.md",
+    "instructions/phase3-hunt.md",
+    "instructions/phase2-recon.md",
     "resources/templates/report-template.md",
     "resources/templates",
     "resources/near-docs/security-checklist.md",
-    "instructions/phase3-hunt.md",
     "README.md",
     "tools/report-template.md",
     "resources/near-docs/security-one_yocto.md",
@@ -192,7 +199,6 @@
     "resources/near-docs/security-frontrunning.md",
     "resources/near-docs/security-callbacks.md",
     "instructions/phase1-setup.md",
-    "instructions/phase2-recon.md",
     "resources/near-docs/security",
     "resources/near-docs/security-storage.md",
     "tmp/mv-phase2-to-phase3-and-phase4.md",
@@ -202,7 +208,6 @@
     "resources/cl.md",
     "resources/vulnerability.md",
     "tmp",
-    "SKILL.md",
     "resources/public-reports/sputnikdao2/storage_withdraw-issue-239-carrotrust.md",
     "resources/public-reports/linear-protocol/Smart Contract Code Review and Security Analysis Report for LiNEAR.md",
     "resources/public-reports/burrowland/blocksec-audit-signed-1.md",
@@ -214,7 +219,6 @@
     "resources/public-reports/burrowland/blocksec-audit-signed-2.md",
     "resources/public-reports/linear-protocol",
     "nearsc-auditor/tools/setup_audit.py~",
-    "tools/setup_audit.py",
-    "study/near-vs-ethereum-token-approvals.md"
+    "tools/setup_audit.py"
   ]
 }
