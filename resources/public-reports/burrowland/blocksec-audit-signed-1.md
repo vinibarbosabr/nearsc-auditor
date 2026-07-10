@@ -278,3 +278,4 @@ impl From<PriceData> for Prices {
 
 **Impact** The received `PriceData` may be outdated
 **Suggestion I** Add a reasonable threshold to check the freshness of `PriceData`
+
