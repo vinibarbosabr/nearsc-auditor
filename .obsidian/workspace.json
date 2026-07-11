@@ -15,7 +15,7 @@
               "state": {
                 "file": "instructions/phase4-attack.md",
                 "mode": "source",
-                "source": true
+                "source": false
               },
               "icon": "lucide-file",
               "title": "phase4-attack"
@@ -183,10 +183,14 @@
   },
   "active": "a62d3c5eea387472",
   "lastOpenFiles": [
-    "SKILL.md",
-    "instructions/phase4-attack.md",
     "instructions/phase3-hunt.md",
+    "instructions/phase4-attack.md",
+    "tools/near-workspaces/workspaces-rs-README.md",
+    "tools/near-workspaces",
+    "tmp/mv-phase2-to-phase3-and-phase4.md",
     "instructions/phase2-recon.md",
+    "instructions/phase1-setup.md",
+    "SKILL.md",
     "resources/templates/report-template.md",
     "resources/templates",
     "resources/near-docs/security-checklist.md",
@@ -198,10 +202,8 @@
     "resources/near-docs/security-random.md",
     "resources/near-docs/security-frontrunning.md",
     "resources/near-docs/security-callbacks.md",
-    "instructions/phase1-setup.md",
     "resources/near-docs/security",
     "resources/near-docs/security-storage.md",
-    "tmp/mv-phase2-to-phase3-and-phase4.md",
     "resources/severity/cvss-4.0.md",
     "resources/severity/hackenproof-vuln-class-scs.md",
     "resources/severity",
@@ -216,9 +218,7 @@
     "resources/checklists/Untitled",
     "resources/near-docs",
     "Pasted image 20260630092009.png",
-    "resources/public-reports/burrowland/blocksec-audit-signed-2.md",
     "resources/public-reports/linear-protocol",
-    "nearsc-auditor/tools/setup_audit.py~",
-    "tools/setup_audit.py"
+    "nearsc-auditor/tools/setup_audit.py~"
   ]
 }
