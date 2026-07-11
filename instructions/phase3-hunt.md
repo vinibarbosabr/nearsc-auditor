@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor-hunt
-version: "1.1"
+version: "1.2"
 author: Vini B (@vinibarbosabr)
 description: instructions for the nearsc-auditor Phase 3- Hunt. use it together with the orchestrator skill to hunt for vulnerabilities and checklist patterns in its source code for a NEAR smart contract audit in security research and bug bounty hunting activities.
 activation:
