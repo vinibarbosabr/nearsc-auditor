@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor-setup
-version: "1.1"
+version: "1.2"
 author: Vini B (@vinibarbosabr)
 description: instructions for the nearsc-auditor Phase 1 - Setup. use it together with the orchestrator skill to setup the user enviornment when starting a NEAR smart contract audit in security research and bug bounty hunting activities.
 activation:
@@ -38,11 +38,11 @@ Request the user input for the following information when missing from prompt. B
 ### Step 3 - Setup Script
 
 Output inside a code block the following script to run the `setup_audit.py` tool for this project's audit (replace the placeholders).
-1. Go to the tool location: `cd ~/near-security-research/nearsc-auditor/tools/`
+1. Go to the tool location: `cd ~/nearsc-auditor/tools/`
 2. Run the Python script
 
 ```Bash
-cd ~/near-security-research/nearsc-auditor/tools/ &&
+cd ~/nearsc-auditor/tools/ &&
 python setup_audit.py \
   --project 'project-name' \
   --repo 'https://github.com/org/repo' \
@@ -52,7 +52,7 @@ python setup_audit.py \
 #### Script Example
 
 ```Bash
-cd ~/near-security-research/nearsc-auditor/tools/ &&
+cd ~/nearsc-auditor/tools/ &&
 python setup_audit.py \
   --project LiNEAR \
   --repo https://github.com/linear-protocol/LiNEAR \
@@ -101,6 +101,7 @@ Confirm "Phase 1 - Setup" has been completed and ask the user if they want to st
 
 - 2026-06-22: Create file
 - 2026-06-22: Skill simplified; complex execution becomes a python tool
+- 2026-07-11: Fixed tool path after renaming repo
 
 ---
 
