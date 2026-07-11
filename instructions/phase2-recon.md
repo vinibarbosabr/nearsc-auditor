@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor-recon
-version: "1.3"
+version: "1.4"
 author: Vini B (@vinibarbosabr)
 description: instructions for the nearsc-auditor Phase 2 - Recon. use it together with the orchestrator skill to map and understand the project and its source code for a NEAR smart contract audit in security research and bug bounty hunting activities.
 activation:
@@ -57,6 +57,8 @@ cloc .
 ls --tree
 rg '#\[near\]|#\[near_bindgen\]' --type rust -A 3
 rg 'pub fn ' --type rust
+rg 'near_sdk|near_contract_standards|#[payable]|#[private]|#[callback]|ext_contract|Promise' --type rust -n
+cat Cargo.toml | head -80
 ```
 
 #### Task 2 - Analyze and Map
@@ -66,7 +68,7 @@ After receiving the input from Task 1, process and analyze all the information t
 2. print a simplified version of the structure, focusing on the contract's src folder and comment the most important files we should give more attention to during Phase 3 (HUNT). Set a HIGH/MEDIUM/LOW priority and give a brief one-liner explanation on what each does.
 3. make a quick summary of the core public functions (from the most important files) we should be aware of, as they are the contract's endpoints and usually the main attack surfaces , considering (usually) anyone can call them with onchain transactions.
 
-Then, ask the user if the wants to expand on that with a full detailed analysis based on this initial mapping. If so:
+Then, expand on that with a full detailed analysis based on this initial mapping. If so:
 
 1. list the most important functions and provide a one-liner explanation on what each of them does.
 2. i won't set any minimum or maximum functions, as you need to be able to effectively filter out the noise, while including all functions that matter.
@@ -152,6 +154,7 @@ Phase 2, Step 5's output must include:
 2. **Table 1: Dependency Map**, with the core function name and its file, plus core internal dependencies (functions, types, macros, etc) present in their execution and the file in which their definition is set.
 3. **Table 2: Execution Map**, with the execution path of each core function (what happens when it's called), step by step, in order.
 4. **Risk Assessment**, an initial hypothesis and first risk assessment based on these maps. Include what the most critical and risky execution paths are, and the most likely places to find vulnerabilities and attack surfaces within the program's scope.
+5. **List**, top 5 riskiest execution paths,
 #### Output example
 
 --- START: recon-notes-exec.md ---
@@ -181,6 +184,13 @@ Phase 2, Step 5's output must include:
 **Risk Assessment**
 <!-- 2-3 paragraphs an initial hypothesis and first risk assessment based on these maps. Include what the most critical and risky execution paths are, and the most likely places to find vulnerabilities and attack surfaces within the program's scope. -->
 
+**Top 5 Riskiest Execution Paths**
+1. Risky Execution Path 1
+2. Risky Execution Path 2
+3. Risky Execution Path 3
+4. Risky Execution Path 4
+5. Risky Execution Path 5
+
 **Changelog:**
 - YYYY-MM-DD: Notes created.
 
@@ -190,7 +200,7 @@ Phase 2, Step 5's output must include:
 
 Before we start hunting security vulnerabilities and bugs ourselves, we first need to study what others have found before us.
 
-Request the user for public material related to this project (security reports and audits, and known issues). The user has a database with many of these materials in markdown format for higher token efficiency during research and studies.
+Request the user for public material related to this project (security reports and audits, and known issues). The user's stack has a database with many of these materials in markdown format for higher token efficiency during research and studies.
 
 Web search for more security-related material about this project the user may have missed and output them, with their respective trusted-source links. All external references in this step MUST be properly referenced and should only use trusted sources.
 
@@ -254,6 +264,7 @@ IMPORTANT: You **should NOT create any strong biases yet!** This was just the re
 - 2026-06-23: Improve templates on "example outputs" to be more general and prevent AI bias to certain patterns
 - 2026-07-10 (v1.2): Move v1.1 Steps 5-6 to /tmp/ directory for future reallocation to Phases 3-4 for better fit
 - 2026-07-10 (v1.3): Add better Steps 5 and 6 for recon
+- 2026-07-11 (v1.4): Improve Step 4 and 5
 
 ---
 
