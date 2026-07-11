@@ -21,6 +21,8 @@ tags:
 
 This phase should only start after "Phase 2 - Recon" has been completed.
 
+Every suggested `rg` must be immediately runnable, include file filters when possible, and target both definition and usage sites.
+
 ## Execution Steps (nearsc-auditor-hunt)
 
 Detailed step-by-step execution that must be followed:
@@ -55,6 +57,7 @@ Share your findings in detail with the user
 2. **Command List** for each item with its respective `rg` command to be executed by the user,
 3. **Table 1: Checklist Findings**, ranked by severity, your checklist-based findings, affected elements (functions, types, etc), affected files, and impact hypothesis
 4. **Recommendations** any recommendation you may have for hunting more checklist-based vulnerabilities for this project in particular
+5. **List**, of recommended prioritization for Phase 3, Step 4.
 
 #### Output Example
 --- START: hunt-notes-check.md ---
@@ -99,12 +102,30 @@ rg # suggested ripgrep commmand syntax with keywords and other specifications
 
 | Severity                 | Finding            | Affected Elements                           | Affected Files                              | Impact                                |     |
 | ------------------------ | ------------------ | ------------------------------------------- | ------------------------------------------- | ------------------------------------- | --- |
-| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
-| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
 | ...                      | ...                | ...                                         | ...                                         | ...                                   |     |
 
 **Recommendations**
 <!-- 2-3 paragraph recommendations for hunting more checklist-based vulnerabilities for this project in particular -->
+
+**Ready for Phase 3 Step 4 – Pattern Hunt!**
+
+Recommended order of attack pattern hunting for this target (based on recon-notes-map + recon-notes-exec + public findings):
+
+1. HIGH: 'High-Priority Pattern 1' (`security-'pattern'.md`)
+2. HIGH: 'High-Priority Pattern 2' (`security-'pattern'.md`)
+3. MEDIUM: 'Medium-Priority Pattern' (`security-'pattern'.md`)
+4. MEDIUM: 'Medium-Priority Pattern' (`security-'pattern'.md`)
+5. LOW: 'Low-Priority Pattern' (`security-'pattern'.md`)
+6. Dynamic: Non-fixed public findings + recent reverts
+
+**Reply with:**
+- "start 1" (or "start 'pattern-name'")
+- "batch 1-3"
+- "skip X"
+- or "custom: pattern1, pattern2"
+
 
 **Changelog:**
 - YYYY-MM-DD: Notes created.
@@ -170,8 +191,8 @@ While doing each TASK:
 
 | Severity                 | Finding            | Affected Elements                           | Affected Files                              | Impact                                |     |
 | ------------------------ | ------------------ | ------------------------------------------- | ------------------------------------------- | ------------------------------------- | --- |
-| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
-| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
 | ...                      | ...                | ...                                         | ...                                         | ...                                   |     |
 
 
@@ -202,71 +223,37 @@ rg # suggested ripgrep commmand syntax with keywords and other specifications
 
 --- END: hunt-notes-patt-1.md --
 
-### Step 5 - Go Deeper: Zero-Day Hunt
+### Step 5 - Hunt Findings Accumulator
 
-While many vulnerabilities will be on the surface, with obvious misses from security checklists and known attack patterns/vectors, the largest rewards are in the depths of zero-day vulnerabilities.
-
-For that, we will need a bit of creativity and to dive deeper into the unknown.
-
-Read recon notes from function execution paths (`recon-notes-exec.md`) and find broken assumptions, bad executions, misbehavior, and divergences from what is documented (intended) and what may actually happen if an ATTACKER calls a function with malicious intent.
-
-Make me proud!
+Create a `hunt-findings.md` accumulator that will list, organize, and index all findings discovered so far with one-liners for easier reference and searching.
 
 #### Output
-Use the same output template from Step 4. It should include:
 
-1. **Findings**, a 2-4 paragraph summary describing your findings.
-2. **TABLE 1: Findings**, ranked by severity, the finding, affected elements (functions, types, macros, etc), affected files, impact hypothesis,
-3. **Checklist**, with suggested ripgrep commands for user-driven, manual verification locally
-4. **Notable observations** and recommendations for the Attack phase (Phase 4)
+Output a master table organizing the findings following the examples from previous steps.
 
 #### Output Example
 
---- START: hunt-notes-zero.md ---
+--- START: hunt-findings.md ---
 ==PHASE 3, STEP 5, TASK 1 — YYYY-MM-DD HH:MM:SS==
 
-**NEAR SC Auditor – Hunt Notes Zero-Day**
+**NEAR SC Auditor – Hunt Findings Accumulator
 **Project:** 'project-name'
 **Version:** 1.0 
 
-**Findings**
-<!-- 2-4 paragraph summary of your findings and relevant observations -->
 
-**TABLE 1: Zero-day Findings**
+**MASTER TABLE: Findings**
 
 | Severity                 | Finding            | Affected Elements                           | Affected Files                              | Impact                                |     |
 | ------------------------ | ------------------ | ------------------------------------------- | ------------------------------------------- | ------------------------------------- | --- |
-| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
-| CRITCIAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
+| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
 | ...                      | ...                | ...                                         | ...                                         | ...                                   |     |
 
-
-**Checklist**
-1. [ ] 'Checklist Item 1'
-2. [ ] 'Checklist Item 2'
-3. [ ] ...
-
-**Command List for manual verification**
-1. 'Checklist Item 1'
-```Bash
-rg # suggested ripgrep commmand syntax with keywords and other specifications
-```
-
-2. 'Checklist Item 2'
-```Bash
-rg # suggested ripgrep commmand syntax with keywords and other specifications
-```
-
-3. ...
-
-
-**Notable Observations**
-<!-- 2-3 paragraph with notable observations and recommendations for hunting more checklist-based vulnerabilities for this project in particular -->
 
 **Changelog:**
 - YYYY-MM-DD: Notes created.
 
---- END: hunt-notes-zero.md --
+--- END: hunt-findings.md --
 
 ### Step 6 - Confirm "Phase 3- Hunt" Completion
 
@@ -276,6 +263,7 @@ Confirm "Phase 3 - Hunt" has been completed and ask the user if they want to sta
 
 - 2026-06-22: Create file
 - 2026-07-10: Build instructions (completed)
+- 2026-07-11: Improve steps with better instructions
 
 ---
 
