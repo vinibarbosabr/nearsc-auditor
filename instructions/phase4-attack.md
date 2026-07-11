@@ -1,8 +1,8 @@
 ---
 name: nearsc-auditor-attack
-version: "1.0"
+version: "1.2"
 author: Vini B (@vinibarbosabr)
-description: instructions for the nearsc-auditor Phase 3 - Attack. use it together with the orchestrator skill to find and validate vulnerabilities in a targetted NEAR smart contract audit for ethical security research and bug bounty hunting activities.
+description: instructions for the nearsc-auditor Phase 4 - Attack. use it together with the orchestrator skill to find and validate vulnerabilities in a targetted NEAR smart contract audit for ethical security research and bug bounty hunting activities.
 activation:
   - phase 4 near audit
   - attack near contract
@@ -34,7 +34,7 @@ Detailed step-by-step execution that must be followed:
 
 Read the SKILL.md file (orchestrator skill) again to understand and internalize our premises, methodology, basic concepts, and references.
 
-### Step 2 - Confirm "Phase 2 - Recon" Completion
+### Step 2 - Confirm "Phase 3 - Hunt" Completion
 
 Check the session's chat to confirm "Phase 3 - Hunt" has been completed. If not, identify in what Step we stopped and activate this Phase 3 step again or ask the user if they want to restart Phase 3 and at which step.
 
@@ -42,7 +42,7 @@ Else, move to "Phase 4 - Attack" Step 3 below.
 
 ### Step 3 - Attack Surface Map
 
-Read all the notes we have so far:
+Read all the notes we have so far. Ask the user to provide any that is missing:
 
 - `REPORT.md`
 - `recon-notes-map.md`
@@ -52,7 +52,7 @@ Read all the notes we have so far:
 - `hunt-notes-patt-1.md`
 - `hunt-notes-patt-2.md`
 - `hunt-notes-patt-<...>.md`
-- `hunt-notes-zero.md`
+- `hunt-findings.md`
 
 Organize and build a detailed attack surface map with all relevant findings ranked by SEVERITY and impact based on the program's rules and scope. You can remove obvious duplicates, but be careful to not remove false-duplicates (similar, but still different).
 
@@ -61,6 +61,10 @@ Request the user to provide the .md file for the severity classification. Priori
 For the PoC, we will favor using NEAR workspaces: [workspaces-rs](https://github.com/near/near-workspaces-rs) or [workspaces-js](https://github.com/near/near-workspaces-js). Rust is preferred, unless the target repo has a solid foundation for JavaScript or other environment. Check the target's tests directory and cargo for insights.
 
 In this first moment (Step 3), we won't write the PoC file. Just set the method that we will use to build it later in following steps.
+
+**IMPORTANT:** Filter out non-exploitable, out-of-scope findings.
+
+We are working with a clear goal in mind (bug bounty hunting) and we don't want our findings to fail easily during triage or to be ruled out as informative or invalid.
 
 #### Output
 The output should include:
@@ -149,6 +153,8 @@ Reproduce the details for the attack surface we are currently working on, then o
 
 Notes file name should start with "poc-" followed by the reduced attack surface title: `poc-<reduced-attack-surface-title>.md`. The test file name (the poc) is the same, but ending in `.rs` or the correct extension for the test type (`.js`, `.ava`, etc).
 
+**IMPORTANT:** The PoC must **conclusively** prove the exploit and the vulnerability. It also needs to print a clean, but complete output with the test results that are able to **unquestionably** demonstrate what happened to observers in a very intuitive and easy way.
+
 #### Output Example
 
 --- START: poc-'reduced-attack-surface-title'.md ---
@@ -174,7 +180,36 @@ Notes file name should start with "poc-" followed by the reduced attack surface 
 
 ```Rust title:poc-<reduced-attack-surface-title>.rs
 // PoC for sandboxed, local testing using the workspaces-rs framework
-// inspired by other tests from our target's repository
+
+// import dependencies used in this test
+// some examples below:
+use serde_json::json;
+use near_gas::NearGas;
+use near_workspaces::types::NearToken;
+use near_workspaces::Contract;
+use near_workspaces::network::Sandbox;
+use near_workspaces::{Account, AccountId, BlockHeight, Contract, Worker};
+
+// point to our pre-compiled WASM contract
+// user needs to generate it with build and provide path.
+//Example:
+const CONTRACT_WASM_FILEPATH: &str = "code/.../res/contract.wasm";
+// can add other constants when it makes sense. Example:
+const CONTRACT_ACCOUNT: &str = "contract_account_name_on_testnet.testnet";
+
+// then implement the test function. Example:
+#[tokio::test]
+async fn testcontract() -> anyhow::Result<()> {
+    let worker = near_workspaces::sandbox().await?;
+    let wasm = std::fs::read(CONTRACT_WASM_FILEPATH)?;
+    let contract = worker.dev_deploy(&wasm).await?;
+
+// Check workspaces-rs-readme.md for better guidance and examples
+// ...
+// print output with test results that conclusively prove the exploit. Example:
+println!("--------------\n{}", result);
+    println!(...) // <-- add as much details as possible with nice formatting
+    Ok(())
 ```
 
 **Reproduction Steps:**
@@ -185,7 +220,7 @@ Notes file name should start with "poc-" followed by the reduced attack surface 
 
 --- END: poc-'reduced-attack-surface-title'.md --
 
-### Step 6 - Ask the User What's Next
+### Step 5 - Ask the User What's Next
 
 The user will now guide you on the next steps.
 Either refining/adjusting the current PoC we are working on, asking for help for testing it further, or moving to the next TASK (ie, the next attack surface finding).
@@ -197,6 +232,7 @@ Ask the user what they want and follow along.
 ## Changelog
 
 - 2026-07-11: Create file
+- 2026-07-12: Many improvements and bug fixes
 
 ---
 
