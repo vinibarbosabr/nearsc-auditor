@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor
-version: "1.3"
+version: "1.4"
 author: Vini B (@vinibarbosabr)
 description: orchestrator skill to audit NEAR smart contracts for security research and bug bounty hunting activities. this is the starting point for all audits.
 activation:
@@ -67,8 +67,7 @@ Read it first and while starting every new phase.
 **Phase 1:** SETUP (sets up the user environment). `instructions/phase1-setup.md`
 **Phase 2:** RECON (maps and understands the project; sets the audit's foundation). `instructions/phase2-recon.md`
 **Phase 3:** HUNT (executes sub-phased analyses using checklists, known attack vectors, and public audit reports, hunting for and classifying potential bugs and vulnerabilities step-by-step). `instructions/phase3-hunt.md`
-**Phase 4:** ATTACK (validates and filters out the findings according to an attacker mindset: what can actually be exploited to cause harm). `instructions/phase4-attack.md`
-**Phase 5:** PoC (writes a proof-of-concept test for the exploit and sets the testing environment). `instructions/phase5-poc.md`
+**Phase 4:** ATTACK (validates and filters out the findings according to an attacker mindset: what can actually be exploited to cause harm, write the poc). `instructions/phase4-attack.md`
 
 ## NEAR Basic Concepts
 
@@ -107,6 +106,7 @@ Read it first and while starting every new phase.
 - 2026-06-22: Create skill
 - 2026-06-23 (v1.2): Add "Template" premise for "Example Outputs" and other minor fixes.
 - 2026-07-10 (v1.3): Add 3 items to "Core premises" to better define the "security focus"
+- 2026-07-10 (v1.4): Remove Phased 5, merged into Phase 4.
 
 ---
 File created on 2026-06-22
