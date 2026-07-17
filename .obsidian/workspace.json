@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "instructions/phase4-attack.md",
+                "file": "instructions/phase3-hunt.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "phase4-attack"
+              "title": "phase3-hunt"
             }
           }
         ]
@@ -183,7 +183,10 @@
   },
   "active": "a62d3c5eea387472",
   "lastOpenFiles": [
+    "tmp/phase3-hunt.bk20260717.md",
     "instructions/phase3-hunt.md",
+    "resources/public-reports/linear-protocol/Smart Contract Code Review and Security Analysis Report for LiNEAR.md",
+    "resources/public-reports/linear-protocol/BlockSec - Security Audit Report for LiNEAR - 202204.md",
     "instructions/phase4-attack.md",
     "tmp/phase3-step5-zero-day-backup.md",
     "instructions/phase2-recon.md",
@@ -211,9 +214,6 @@
     "resources/cl.md",
     "resources/vulnerability.md",
     "tmp",
-    "resources/public-reports/sputnikdao2/storage_withdraw-issue-239-carrotrust.md",
-    "resources/public-reports/linear-protocol/Smart Contract Code Review and Security Analysis Report for LiNEAR.md",
-    "resources/public-reports/burrowland/blocksec-audit-signed-1.md",
     "resources/public-reports/sputnikdao2",
     "resources/checklists/Untitled",
     "resources/near-docs",

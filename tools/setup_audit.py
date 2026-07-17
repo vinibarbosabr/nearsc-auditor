@@ -24,7 +24,7 @@ def main():
     audit_dir = root / f"audit-{project}"
     code_dir = audit_dir / "code"
     template_path = Path(
-        "~/near-security-research/nearsc-auditor/report-template.md"
+        "~/nearsc-auditor/resources/templates/report-template.md"
     ).expanduser()
     report_path = audit_dir / "REPORT.md"
 
