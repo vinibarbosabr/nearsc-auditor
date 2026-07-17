@@ -1,6 +1,6 @@
 ---
 name: nearsc-auditor-hunt
-version: "1.2"
+version: "1.3"
 author: Vini B (@vinibarbosabr)
 description: instructions for the nearsc-auditor Phase 3- Hunt. use it together with the orchestrator skill to hunt for vulnerabilities and checklist patterns in its source code for a NEAR smart contract audit in security research and bug bounty hunting activities.
 activation:
@@ -134,15 +134,19 @@ Recommended order of attack pattern hunting for this target (based on recon-note
 
 ### Step 4 - Hunt for Security Patterns
 
-Moving forward, we will dive into security patterns independently or (when possible) delegate unique agents (or sub-agents) for specific hunting work at each pattern for more efficient token usage and context management.
+Perform **one single, unified security pattern analysis** covering **all** the known attack patterns listed below.
 
-Agents must read the respective resource material for each security pattern and do the proper, careful verification against keywords and code patterns through the entire project's code base and contracts' source code.
+**Before executing it**, read all the documentation that explains these attack patterns and all the known public audits/reports published (the user must provide all these resources).
 
-Organize and plan this hunt according to known attack vectors and patterns based on `resources/near-docs/<atk-pattern.md>` files (per pattern, listed below), PLUS public findings we studied on Phase 2, documented at `recon-notes-find.md`. Give special attention to findings that weren't fully fixed (mitigated, accepted, ignored, etc) and for recent changes that might have reverted previous fixes.
+The goal is to analyze the entire codebase against every pattern simultaneously, explicitly noting when a finding relates to multiple patterns (overlaps are common and valuable). Leverage all provided pattern documentation + the public findings from Phase 2 (`recon-notes-find.md`) in this one analysis pass.
 
-Generate a focused checklist for each pattern, thought for this project in particular, and set priority checks (high, medium, low priority) with suggested key words, patterns, or any other specifics that are relevant for the contract we are currently auditing.
+**To start this step**, ask the user to upload **all** of the following files at once:
+- All pattern documentation files: `resources/near-docs/security-*.md`
+- All public security audits/reports against this target
+- `recon-notes-find.md` (from Phase 2)
 
-Each attack pattern will initiate its own TASK following user's confirmation. When you end a task (pattern), output accordingly and ask the user confirmation before starting the next TASK.
+Once you have them, execute the single comprehensive hunt.
+
 #### Attack Patterns (TASKS)
 - Storage Cost Attacks → `security-storage.md`
 - Cross-Contract Calls → `security-callbacks.md`
@@ -156,20 +160,22 @@ Each attack pattern will initiate its own TASK following user's confirmation. Wh
 - 'Reverted Fix Bug 1' → `recon-notes-find.md`
 - etc...
 
-The task completion will require a pattern-focused audit and vulnerability hunt against the target, a table with your findings, a checklist with suggested commands for manual verification (by the user), and notable observations for Phase 4 - Attack.
-
-You will repeat this same methodology for each task (pattern).
-
 #### Output
 
-Say you are ready to start the next TASK and ask for user confirmation, mentioning the TASK number, attack vector, and resource needed. Wait for the user to confirm and upload the requested file.
+Produce: `hunt-notes-patterns.md`
 
-While doing each TASK:
+The file should contain:
+1. A short summary of the overall pattern analysis.
+2. A unified findings table (or findings grouped by pattern with clear overlap notes).
+3. For each finding: severity, affected elements, affected files, impact hypothesis, and which pattern(s) it matches.
+4. Notable observations and recommendations for Phase 4.
+
+#### Output structure
 
 1. **Initiate** TASK X,
 2. **Findings**, a 2-4 paragraph summary describing your findings.
-3. **TABLE 1: Findings**, ranked by severity, the finding, affected elements (functions, types, macros, etc), affected files, impact hypothesis,
-4. **Checklist**, with suggested ripgrep commands for user-driven, manual verification locally
+3. **TABLE 1: Findings**, ranked by severity, the finding, attack pattern, affected elements (functions, types, macros, etc), affected files, impact hypothesis,
+4. **Checklist**, with suggested commands for user-driven, manual verification locally
 5. **Notable observations** and recommendations for the Attack phase (Phase 4)
 
 #### Output Example
@@ -223,39 +229,7 @@ rg # suggested ripgrep commmand syntax with keywords and other specifications
 
 --- END: hunt-notes-patt-1.md --
 
-### Step 5 - Hunt Findings Accumulator
-
-Create a `hunt-findings.md` accumulator that will list, organize, and index all findings discovered so far with one-liners for easier reference and searching.
-
-#### Output
-
-Output a master table organizing the findings following the examples from previous steps.
-
-#### Output Example
-
---- START: hunt-findings.md ---
-==PHASE 3, STEP 5, TASK 1 — YYYY-MM-DD HH:MM:SS==
-
-**NEAR SC Auditor – Hunt Findings Accumulator
-**Project:** 'project-name'
-**Version:** 1.0 
-
-
-**MASTER TABLE: Findings**
-
-| Severity                 | Finding            | Affected Elements                           | Affected Files                              | Impact                                |     |
-| ------------------------ | ------------------ | ------------------------------------------- | ------------------------------------------- | ------------------------------------- | --- |
-| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 1' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
-| CRITICAL/HIGH/MEDIUM/LOW | 'Title: Finding 2' | - 'element_1-1'<br>- 'element_1-2'<br>- ... | - 'file_1-1.rs'<br>- 'file_1-2.rs'<br>- ... | 'Brief impact hypothesis description' |     |
-| ...                      | ...                | ...                                         | ...                                         | ...                                   |     |
-
-
-**Changelog:**
-- YYYY-MM-DD: Notes created.
-
---- END: hunt-findings.md --
-
-### Step 6 - Confirm "Phase 3- Hunt" Completion
+### Step 5 - Confirm "Phase 3- Hunt" Completion
 
 Confirm "Phase 3 - Hunt" has been completed and ask the user if they want to start "Phase 4 - Attack" according to the `instructions/phase4-attack.md` skill. Ask the user to upload this file.
 
@@ -264,6 +238,7 @@ Confirm "Phase 3 - Hunt" has been completed and ask the user if they want to sta
 - 2026-06-22: Create file
 - 2026-07-10: Build instructions (completed)
 - 2026-07-11: Improve steps with better instructions
+- 2026-07-17 (v1.3): Unify Pattern hunting into a single task for for efficiency
 
 ---
 
