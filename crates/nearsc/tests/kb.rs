@@ -22,7 +22,7 @@ fn index_covers_the_kb_floor() {
     let patterns = entries.iter().filter(|e| e.kind == "pattern").count();
     let audits = entries.iter().filter(|e| e.kind == "audit").count();
     let postmortems = entries.iter().filter(|e| e.kind == "postmortem").count();
-    assert!(patterns >= 10, "patterns: {patterns}");
+    assert!(patterns >= 12, "patterns: {patterns}");
     assert!(audits >= 3, "audits: {audits}");
     assert!(postmortems >= 1, "postmortems: {postmortems}");
 }

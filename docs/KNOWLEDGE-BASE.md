@@ -100,7 +100,7 @@ The index is built by a small script and checked in, so the binary and CI are de
 
 ## Seed content for v0.1
 
-- Patterns: the NEAR security classes from the v1 prompt stack (callbacks, 1-yocto, storage, reentrancy in the async model, randomness, front-running, sybil), rewritten as standalone notes.
+- Patterns: the NEAR security classes from the v1 prompt stack (callbacks, 1-yocto, storage, reentrancy in the async model, randomness, front-running, sybil), rewritten as standalone notes. All seven classes ship in v0.1; async reentrancy, front-running, and sybil resistance are KB-only classes without a matcher.
 - Audits: burrowland, linear-protocol, sputnikdao2 (summaries + links), plus public reports gathered this week.
 - Postmortems: the NEAR Intents deposit-notification exploit (adjusted for public release, public sources only).
 - Registry: 3–5 well-known contracts with verified code hashes.
