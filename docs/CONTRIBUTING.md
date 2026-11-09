@@ -26,7 +26,7 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 ## Add a rule
 
 1. **Pick the next id.** `NS0xx`, sequential. Check `rules/` for collisions.
-2. **Write `rules/NS0xx.toml`.** Metadata, severity, confidence, tags, refs, message, vulnerable snippet, fixed snippet. The `fixed` block is mandatory.
+2. **Write `rules/NS0xx.toml`.** Metadata, severity, confidence, tags, refs, message, vulnerable snippet, fixed snippet. The `fixed` block is mandatory. **Status:** the TOML layer is planned to land with the `v0.1.0` tag; until then the matcher registry in `crates/nearsc/src/rules/mod.rs` is the source of truth.
 3. **Implement the matcher.** `crates/nearsc/src/rules/ns0xx.rs`, registered in the registry. Pure function over `FileContext`, no I/O, no network.
 4. **Add fixtures.** `tests/fixtures/NS0xx/vuln.rs` must emit exactly that rule id; `fixed.rs` must emit nothing.
 5. **Add a snapshot test.** `insta` locks rule id, line, and severity.
