@@ -1,0 +1,17 @@
+# build
+/target/
+**/target/
+
+# scratch and editor state (local only)
+/tmp/
+/.obsidian/
+/.env
+/.env.*
+**/.env
+**/.env.*
+
+# rust
+**/*.rs.bk
+
+# node (emergency MCP shim only, D-006)
+node_modules/
