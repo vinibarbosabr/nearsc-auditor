@@ -64,9 +64,10 @@ pub fn scan_path(target: &Path) -> ScanResult {
     for path in &files {
         let rel = path
             .strip_prefix(target)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .replace('\\', "/");
+            .ok()
+            .filter(|rel| !rel.as_os_str().is_empty())
+            .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|| path.to_string_lossy().replace('\\', "/"));
         let source = match std::fs::read_to_string(path) {
             Ok(source) => source,
             Err(err) => {

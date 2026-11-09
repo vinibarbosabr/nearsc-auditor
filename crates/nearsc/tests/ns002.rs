@@ -22,6 +22,22 @@ fn vulnerable_fixture_emits_exactly_ns002() {
 }
 
 #[test]
+fn single_file_scan_keeps_the_file_path() {
+    let file = fixture("ns002/vuln.rs");
+    let result = engine::scan_path(&file);
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert_eq!(result.findings.len(), 1, "{:?}", result.findings);
+    assert_eq!(
+        result.findings[0].file,
+        file.to_string_lossy().replace('\\', "/")
+    );
+}
+
+#[test]
 fn fixed_fixture_emits_nothing() {
     let result = engine::scan_path(&fixture("ns002/fixed.rs"));
     assert!(
