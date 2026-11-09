@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["crates/nearsc", "crates/nearsc-mcp"]
+exclude = ["examples/vulnerable-contract"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/vinibarbosabr/nearsc-auditor"
+authors = ["Vini B (@vinibarbosabr)"]
