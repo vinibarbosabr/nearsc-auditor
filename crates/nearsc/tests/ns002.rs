@@ -22,6 +22,33 @@ fn vulnerable_fixture_emits_exactly_ns002() {
 }
 
 #[test]
+fn single_file_scan_keeps_the_file_path() {
+    let file = fixture("ns002/vuln.rs");
+    let result = engine::scan_path(&file);
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert_eq!(result.findings.len(), 1, "{:?}", result.findings);
+    assert_eq!(
+        result.findings[0].file,
+        file.to_string_lossy().replace('\\', "/")
+    );
+}
+
+#[test]
+fn manual_guard_fixture_emits_nothing() {
+    let result = engine::scan_path(&fixture("ns002/manual_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn fixed_fixture_emits_nothing() {
     let result = engine::scan_path(&fixture("ns002/fixed.rs"));
     assert!(
@@ -41,6 +68,17 @@ fn example_contract_flags_callback_not_private() {
         result.parse_errors
     );
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
-    assert_eq!(ids, vec!["NS002"]);
-    assert!(result.findings[0].message.contains("on_deposit_complete"));
+    // The example contract seeds multiple rule classes (see the `/// NS0xx seed:`
+    // comments in src/lib.rs); NS002 is the shipped one today. Upgrade this to
+    // one containment assertion per seed when the full rule set lands Wednesday.
+    assert!(
+        ids.contains(&"NS002"),
+        "NS002 missing from example contract scan: {ids:?}"
+    );
+    let ns002 = result
+        .findings
+        .iter()
+        .find(|finding| finding.rule_id == "NS002")
+        .expect("NS002 finding");
+    assert!(ns002.message.contains("on_deposit_complete"));
 }

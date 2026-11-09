@@ -57,14 +57,15 @@ pub fn on_transfer_complete(&mut self, amount: u128) {
 
 The NS002 matcher collects functions used as the argument to `.then(...)`
 (including the near-sdk `Self::ext(...).method(...)` idiom) and functions
-annotated `#[callback]`, `#[callback_unwrap]`, or `#[callback_vec]`, then flags
-the ones without `#[private]` or an equivalent predecessor assertion.
+annotated `#[callback]`, `#[callback_result]`, `#[callback_unwrap]`, or
+`#[callback_vec]`, then flags the ones without `#[private]`, a manual
+predecessor/current-account check, or an `assert_self`-style macro.
 Confidence `spec`.
 
 ## False positives
 
 Deliberately public "callback-like" methods that are not promise callbacks
-(e.g. user-triggered settlement functions) and already assert the caller.
+(e.g. user-triggered settlement functions). The matcher sees shape, not intent.
 
 ## References
 

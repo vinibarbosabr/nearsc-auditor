@@ -26,7 +26,7 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 ## Add a rule
 
 1. **Pick the next id.** `NS0xx`, sequential. Check `rules/` for collisions.
-2. **Write `rules/NS0xx.toml`.** Metadata, severity, confidence, tags, refs, message, vulnerable snippet, fixed snippet. The `fixed` block is mandatory.
+2. **Write `rules/NS0xx.toml`.** Metadata, severity, confidence, tags, refs, message, vulnerable snippet, fixed snippet. The `fixed` block is mandatory. **Status:** the TOML layer is planned to land with the `v0.1.0` tag; until then the matcher registry in `crates/nearsc/src/rules/mod.rs` is the source of truth.
 3. **Implement the matcher.** `crates/nearsc/src/rules/ns0xx.rs`, registered in the registry. Pure function over `FileContext`, no I/O, no network.
 4. **Add fixtures.** `tests/fixtures/NS0xx/vuln.rs` must emit exactly that rule id; `fixed.rs` must emit nothing.
 5. **Add a snapshot test.** `insta` locks rule id, line, and severity.
@@ -45,7 +45,13 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 1. Pick `data/patterns/`, `data/audits/`, or `data/postmortems/`.
 2. Add the frontmatter: title, kind, source (required for audits/postmortems), retrieved date, confidence, tags.
 3. Summarize; link the source; never copy third-party text wholesale.
-4. Rebuild `data/index.json` (script path documented in the README).
+4. Rebuild `data/index.json`:
+
+   ```bash
+   cargo run -p nearsc -- kb-index > data/index.json
+   ```
+
+   `crates/nearsc/tests/kb.rs` (`index_json_is_in_sync_with_data_directory`) fails if the checked-in index drifts from `data/`, so CI blocks an unsynced index.
 5. PR with the source link in the description.
 
 ## Commit style

@@ -41,6 +41,7 @@ struct Collector {
 struct FnInfo {
     name: String,
     has_private: bool,
+    has_manual_guard: bool,
     is_callback_attr: bool,
     line: usize,
     column: usize,
@@ -55,7 +56,7 @@ impl Collector {
                     .then_callbacks
                     .iter()
                     .any(|name| name == &candidate.name);
-            if used_as_callback && !candidate.has_private {
+            if used_as_callback && !candidate.has_private && !candidate.has_manual_guard {
                 findings.push(Finding {
                     rule_id: RULE_ID,
                     title: TITLE,
@@ -76,13 +77,15 @@ impl Collector {
         findings
     }
 
-    fn push_fn(&mut self, ident: &syn::Ident, attrs: &[Attribute]) {
+    fn push_fn(&mut self, ident: &syn::Ident, attrs: &[Attribute], body: &syn::Block) {
         let start = ident.span().start();
         self.candidates.push(FnInfo {
             name: ident.to_string(),
             has_private: attrs.iter().any(|attr| last_segment_is(attr, "private")),
+            has_manual_guard: body_has_manual_guard(body),
             is_callback_attr: attrs.iter().any(|attr| {
                 last_segment_is(attr, "callback")
+                    || last_segment_is(attr, "callback_result")
                     || last_segment_is(attr, "callback_unwrap")
                     || last_segment_is(attr, "callback_vec")
             }),
@@ -105,14 +108,78 @@ impl<'ast> Visit<'ast> for Collector {
     }
 
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
-        self.push_fn(&item.sig.ident, &item.attrs);
+        self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_item_fn(self, item);
     }
 
     fn visit_impl_item_fn(&mut self, item: &'ast ImplItemFn) {
-        self.push_fn(&item.sig.ident, &item.attrs);
+        self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_impl_item_fn(self, item);
     }
+}
+
+/// Recognize a manual "only the contract itself may call this" guard.
+///
+/// Matches a body that mentions both `predecessor_account_id` and
+/// `current_account_id`, an `assert_self`-style macro, or a macro invocation
+/// whose tokens mention both calls (`assert_eq!`, `require!`, ...). Macro bodies
+/// are inspected as tokens because `syn` does not expand them.
+fn body_has_manual_guard(block: &syn::Block) -> bool {
+    #[derive(Default)]
+    struct GuardVisitor {
+        predecessor: bool,
+        current: bool,
+        assert_self: bool,
+    }
+
+    impl<'ast> Visit<'ast> for GuardVisitor {
+        fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
+            if call.method == "predecessor_account_id" {
+                self.predecessor = true;
+            }
+            if call.method == "current_account_id" {
+                self.current = true;
+            }
+            syn::visit::visit_expr_method_call(self, call);
+        }
+
+        fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
+            if let Expr::Path(path) = &*call.func {
+                if let Some(segment) = path.path.segments.last() {
+                    if segment.ident == "predecessor_account_id" {
+                        self.predecessor = true;
+                    }
+                    if segment.ident == "current_account_id" {
+                        self.current = true;
+                    }
+                }
+            }
+            syn::visit::visit_expr_call(self, call);
+        }
+
+        fn visit_macro(&mut self, mac: &'ast syn::Macro) {
+            if mac
+                .path
+                .segments
+                .last()
+                .is_some_and(|segment| segment.ident == "assert_self")
+            {
+                self.assert_self = true;
+            }
+            let tokens = mac.tokens.to_string();
+            if tokens.contains("predecessor_account_id") {
+                self.predecessor = true;
+            }
+            if tokens.contains("current_account_id") {
+                self.current = true;
+            }
+            syn::visit::visit_macro(self, mac);
+        }
+    }
+
+    let mut visitor = GuardVisitor::default();
+    visitor.visit_block(block);
+    visitor.assert_self || (visitor.predecessor && visitor.current)
 }
 
 /// Extract the callback function name from the argument to `.then(...)`.
@@ -152,4 +219,48 @@ fn snippet_at(context: &FileContext, line: usize) -> String {
         .nth(line.saturating_sub(1))
         .map(|source_line| source_line.trim().to_string())
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::body_has_manual_guard;
+
+    #[test]
+    fn detects_assert_eq_guard() {
+        let block: syn::Block = syn::parse_quote!({
+            assert_eq!(env::predecessor_account_id(), env::current_account_id());
+        });
+        assert!(body_has_manual_guard(&block));
+    }
+
+    #[test]
+    fn detects_branch_guard() {
+        let block: syn::Block = syn::parse_quote!({
+            if env::predecessor_account_id() != env::current_account_id() {
+                env::panic_str("only self");
+            }
+        });
+        assert!(body_has_manual_guard(&block));
+    }
+
+    #[test]
+    fn detects_assert_self_macro() {
+        let block: syn::Block = syn::parse_quote!({
+            assert_self!();
+        });
+        assert!(body_has_manual_guard(&block));
+    }
+
+    #[test]
+    fn ignores_partial_or_unrelated_bodies() {
+        let partial: syn::Block = syn::parse_quote!({
+            let caller = env::predecessor_account_id();
+        });
+        assert!(!body_has_manual_guard(&partial));
+
+        let unrelated: syn::Block = syn::parse_quote!({
+            env::log_str("done");
+        });
+        assert!(!body_has_manual_guard(&unrelated));
+    }
 }

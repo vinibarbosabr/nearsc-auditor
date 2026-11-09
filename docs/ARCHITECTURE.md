@@ -31,7 +31,7 @@ Keeping the MCP server in a separate crate means `cargo install nearsc` does not
 
 ## Pipeline
 
-1. **Walk.** Recursively collect `*.rs` files under the target path (skip `target/`, `.git/`, `legacy/` by default).
+1. **Walk.** Recursively collect `*.rs` files under the target path, skipping `target/`, `.git/`, and `node_modules/` by default. A directory passed explicitly as the target is always scanned, even when its name matches a skipped directory.
 2. **Parse.** `syn::parse_file` per file. Parse errors become `parse_errors` entries, never fatal.
 3. **Context.** For each file, index functions, attributes, trait impls, and call sites (`.then()`, `Promise::new`, `env::*`).
 4. **Match.** Run registered matchers. Each matcher is a pure function `(&FileContext) -> Vec<Finding>`.

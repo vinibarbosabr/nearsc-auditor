@@ -17,3 +17,5 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      - name: dogfood scan (binary end-to-end)
+        run: cargo run -q -p nearsc -- scan examples/vulnerable-contract

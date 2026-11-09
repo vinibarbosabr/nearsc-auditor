@@ -121,6 +121,22 @@
     "confidence": "verified-public"
   },
   {
+    "id": "async-reentrancy",
+    "kind": "pattern",
+    "title": "Async reentrancy: state between a cross-contract call and its callback",
+    "severity": "high",
+    "tags": [
+      "async",
+      "reentrancy",
+      "state"
+    ],
+    "path": "data/patterns/async-reentrancy.md",
+    "summary": "NEAR has no atomicity across receipts: any public method can run between a cross-contract call and its callback, so state committed before the callback can be exploited; delay critical state changes until the callback confirms success.",
+    "source": "https://docs.near.org/smart-contracts/security/cross-contract-calls/reentrancy.md",
+    "retrieved": "2026-11-10",
+    "confidence": "verified-public"
+  },
+  {
     "id": "callback-panic-safety",
     "kind": "pattern",
     "title": "Panic-free callbacks: no unwrap, expect, or indexing in resolve paths",
@@ -170,6 +186,22 @@
     "summary": "A payable method that accepts a deposit, then fails an assertion or bails out before moving the funds, keeps the user's NEAR inside the contract unless an explicit refund path exists.",
     "source": "https://docs.near.org/smart-contracts/security/cross-contract-calls/refunds.md",
     "retrieved": "2026-11-09",
+    "confidence": "verified-public"
+  },
+  {
+    "id": "frontrunning",
+    "kind": "pattern",
+    "title": "Front-running: validator ordering and first-come-first-served rewards",
+    "severity": "medium",
+    "tags": [
+      "mev",
+      "validators",
+      "commit-reveal"
+    ],
+    "path": "data/patterns/frontrunning.md",
+    "summary": "Validators see the transaction pool and choose ordering, so first-come-first-served rewards and public answers can be copied and landed first; commit-reveal, delays, or randomized selection remove the advantage.",
+    "source": "https://docs.near.org/smart-contracts/security/frontrunning.md",
+    "retrieved": "2026-11-10",
     "confidence": "verified-public"
   },
   {
@@ -259,6 +291,22 @@
     "summary": "Writing user-controlled data into contract storage without charging the user locks the contract's NEAR balance; repeated small inserts can drain the balance and freeze the contract.",
     "source": "https://docs.near.org/smart-contracts/security/storage.md",
     "retrieved": "2026-11-09",
+    "confidence": "verified-public"
+  },
+  {
+    "id": "sybil-resistance",
+    "kind": "pattern",
+    "title": "Sybil resistance: per-account rules in a cheap-account environment",
+    "severity": "medium",
+    "tags": [
+      "identity",
+      "governance",
+      "accounts"
+    ],
+    "path": "data/patterns/sybil-resistance.md",
+    "summary": "NEAR accounts are cheap and unverified, so one-account-one-vote and per-account airdrops are trivially multiplied; use token weighting, economic stake, reputation, or off-chain identity, and state the remaining trust assumption.",
+    "source": "https://docs.near.org/smart-contracts/security/sybil.md",
+    "retrieved": "2026-11-10",
     "confidence": "verified-public"
   },
   {
