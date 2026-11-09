@@ -38,9 +38,9 @@ pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option
 ## NS002: callback-not-private
 
 - **Severity:** high · **Confidence:** spec · **Tags:** async, callbacks, access-control
-- **Detects:** a function used as a `.then()` callback, or annotated `#[callback]`/`#[callback_result]`/`#[callback_unwrap]`, that is not annotated `#[private]`.
+- **Detects:** a function used as a `.then()` callback, or annotated `#[callback]`/`#[callback_result]`/`#[callback_unwrap]`/`#[callback_vec]`, that is not annotated `#[private]` and has no recognized manual guard.
 - **Why it matters:** any account can call a public method. Without `#[private]` (which asserts `predecessor == current_account_id`), an attacker can invoke the callback directly and fake a successful cross-contract result, corrupting state or releasing funds.
-- **Detection:** collect callback names from `.then(...)` call sites and `#[callback*]` attributes; resolve the function in the same file or crate; check for `#[private]`.
+- **Detection:** collect callback names from `.then(...)` call sites and `#[callback*]` attributes **in the same file**; resolve against functions defined in that file; pass when the function has `#[private]`, mentions both `predecessor_account_id` and `current_account_id` in its body, or invokes an `assert_self`-style macro. Cross-file callback resolution is on the v0.2 roadmap.
 
 ```rust
 // vulnerable
@@ -57,7 +57,7 @@ pub fn on_withdraw(&mut self, amount: U128) {
 }
 ```
 
-- **False positives:** none expected; a callback that intentionally checks `predecessor == current_account_id` manually is recognized.
+- **False positives:** a callback whose guard lives behind a helper or a macro that does not name both account-id calls in its tokens is still flagged. The matcher recognizes `#[private]`, manual `predecessor_account_id` + `current_account_id` checks, and `assert_self`-style macros; it does not expand other macros.
 - **Refs:** [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys), [near-sdk-rs](https://github.com/near/near-sdk-rs)
 
 ---

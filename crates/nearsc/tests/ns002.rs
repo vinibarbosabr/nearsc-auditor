@@ -38,6 +38,17 @@ fn single_file_scan_keeps_the_file_path() {
 }
 
 #[test]
+fn manual_guard_fixture_emits_nothing() {
+    let result = engine::scan_path(&fixture("ns002/manual_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn fixed_fixture_emits_nothing() {
     let result = engine::scan_path(&fixture("ns002/fixed.rs"));
     assert!(
