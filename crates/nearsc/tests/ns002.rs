@@ -68,6 +68,17 @@ fn example_contract_flags_callback_not_private() {
         result.parse_errors
     );
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
-    assert_eq!(ids, vec!["NS002"]);
-    assert!(result.findings[0].message.contains("on_deposit_complete"));
+    // The example contract seeds multiple rule classes (see the `/// NS0xx seed:`
+    // comments in src/lib.rs); NS002 is the shipped one today. Upgrade this to
+    // one containment assertion per seed when the full rule set lands Wednesday.
+    assert!(
+        ids.contains(&"NS002"),
+        "NS002 missing from example contract scan: {ids:?}"
+    );
+    let ns002 = result
+        .findings
+        .iter()
+        .find(|finding| finding.rule_id == "NS002")
+        .expect("NS002 finding");
+    assert!(ns002.message.contains("on_deposit_complete"));
 }
