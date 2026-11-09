@@ -1,9 +1,18 @@
 use std::path::Path;
 
 use serde::Serialize;
+use walkdir::{DirEntry, WalkDir};
 
 use crate::finding::{Finding, Severity};
 use crate::rules;
+
+/// Directory names never scanned: build artifacts, VCS state, dependencies.
+const SKIP_DIRS: &[&str] = &["target", ".git", "node_modules"];
+
+fn is_skipped_dir(entry: &DirEntry) -> bool {
+    let name = entry.file_name().to_string_lossy();
+    entry.file_type().is_dir() && SKIP_DIRS.contains(&name.as_ref())
+}
 
 /// Parsed view of one Rust source file shared by all rules.
 pub struct FileContext {
@@ -45,9 +54,10 @@ pub fn scan_path(target: &Path) -> ScanResult {
     if target.is_file() {
         files.push(target.to_path_buf());
     } else {
-        for entry in walkdir::WalkDir::new(target)
+        for entry in WalkDir::new(target)
             .sort_by_file_name()
             .into_iter()
+            .filter_entry(|entry| entry.depth() == 0 || !is_skipped_dir(entry))
             .filter_map(|entry| entry.ok())
         {
             if entry.file_type().is_file()
