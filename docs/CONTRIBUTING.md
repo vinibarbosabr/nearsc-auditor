@@ -45,7 +45,13 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 1. Pick `data/patterns/`, `data/audits/`, or `data/postmortems/`.
 2. Add the frontmatter: title, kind, source (required for audits/postmortems), retrieved date, confidence, tags.
 3. Summarize; link the source; never copy third-party text wholesale.
-4. Rebuild `data/index.json` (script path documented in the README).
+4. Rebuild `data/index.json`:
+
+   ```bash
+   cargo run -p nearsc -- kb-index > data/index.json
+   ```
+
+   `crates/nearsc/tests/kb.rs` (`index_json_is_in_sync_with_data_directory`) fails if the checked-in index drifts from `data/`, so CI blocks an unsynced index.
 5. PR with the source link in the description.
 
 ## Commit style
