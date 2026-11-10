@@ -38,6 +38,17 @@ fn fixed_fixture_emits_nothing() {
 }
 
 #[test]
+fn helper_with_the_check_satisfies_the_rule() {
+    let result = engine::scan_path(&fixture("ns001/helper_fixed.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_unchecked_transfer() {
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     assert!(

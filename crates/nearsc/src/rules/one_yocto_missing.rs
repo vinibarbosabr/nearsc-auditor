@@ -43,40 +43,38 @@ impl Rule for OneYoctoMissing {
 
 #[derive(Default)]
 struct Collector {
-    /// Every transfer-shaped method: name, guarded, body of each local helper.
+    /// Every transfer-shaped method: name, direct guard flag, callee names.
     transfer_fns: Vec<FnInfo>,
-    /// Name -> true when the local function body enforces the 1-yocto check.
-    local_helpers: Vec<(String, bool)>,
+    /// Locally defined functions whose body checks the 1-yocto deposit.
+    guard_helpers: Vec<String>,
 }
 
 struct FnInfo {
     name: String,
     guarded: bool,
+    /// Names of zero-or-more local helpers this fn calls.
+    callees: Vec<String>,
     line: usize,
     column: usize,
 }
 
 impl Collector {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
-        let mut findings = Vec::new();
-        for candidate in &self.transfer_fns {
-            // One level of local helper resolution: `internal_transfer(...)`
-            // counts as guarded when that helper asserts the deposit itself.
-            let helper_guarded = candidate
-                .name
-                .strip_prefix("ft_")
-                .or_else(|| candidate.name.strip_prefix("nft_"))
-                .and_then(|rest| rest.strip_prefix("transfer"))
-                .and_then(|_| {
-                    self.local_helpers
-                        .iter()
-                        .find(|(name, _)| name == &candidate.name)
-                })
-                .map(|(_, guarded)| *guarded);
-            if candidate.guarded || helper_guarded.unwrap_or(false) {
-                continue;
-            }
-            findings.push(Finding {
+        // Two passes over the transfer fns: resolve guarded candidates first
+        // (a helper defined later in the file still counts), then report.
+        let helper_guarded = |callees: &[String]| {
+            callees
+                .iter()
+                .any(|callee| self.guard_helpers.iter().any(|h| h == callee))
+        };
+        let unguarded: Vec<&FnInfo> = self
+            .transfer_fns
+            .iter()
+            .filter(|candidate| !candidate.guarded && !helper_guarded(&candidate.callees))
+            .collect();
+        unguarded
+            .into_iter()
+            .map(|candidate| Finding {
                 rule_id: RULE_ID,
                 title: TITLE,
                 severity: Severity::High,
@@ -90,9 +88,8 @@ impl Collector {
                     candidate.name
                 ),
                 refs: REFS,
-            });
-        }
-        findings
+            })
+            .collect()
     }
 }
 
@@ -205,19 +202,51 @@ impl Collector {
     fn push_fn(&mut self, ident: &syn::Ident, _attrs: &[syn::Attribute], body: &syn::Block) {
         let name = ident.to_string();
         let is_transfer = TRANSFER_METHODS.contains(&name.as_str());
-        // Any local function is a potential helper; only transfers are reported.
         let guarded = body.stmts.iter().any(stmt_checks_one_yocto);
         if is_transfer {
             let start = ident.span().start();
+            let callees = body_callee_names(body);
             self.transfer_fns.push(FnInfo {
                 name,
                 guarded,
+                callees,
                 line: start.line,
                 column: start.column + 1,
             });
         } else if guarded {
-            self.local_helpers.push((name, true));
+            self.guard_helpers.push(name);
         }
+    }
+}
+
+/// Local function/method names called anywhere in the body (one level of
+/// call-depth for guard-helper resolution).
+fn body_callee_names(block: &syn::Block) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut visitor = CalleeVisitor { out: &mut names };
+    visitor.visit_block(block);
+    names
+}
+
+struct CalleeVisitor<'a> {
+    out: &'a mut Vec<String>,
+}
+
+impl<'ast, 'a> Visit<'ast> for CalleeVisitor<'a> {
+    fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
+        if let syn::Expr::Path(path) = &*call.func {
+            if let Some(segment) = path.path.segments.last() {
+                self.out.push(segment.ident.to_string());
+            }
+        }
+        syn::visit::visit_expr_call(self, call);
+    }
+
+    fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
+        // `self.internal_transfer(...)` registers as a callee too; a same-file
+        // helper is what the RULES.md false-positive note resolves.
+        self.out.push(call.method.to_string());
+        syn::visit::visit_expr_method_call(self, call);
     }
 }
 
