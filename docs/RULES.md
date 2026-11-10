@@ -211,12 +211,13 @@ pub fn migrate() -> Self {
 
 ## NS010: arbitrary-promise-target
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `arbitrary_promise_target`
 - **Severity:** high · **Confidence:** heuristic · **Tags:** promises, access-control
-- **Detects:** `Promise::new(<non-literal>)` where the target is a function parameter or user input, without an allowlist check.
+- **Detects:** `Promise::new(<param>)` where the target is a method parameter (or a `let`-bound alias of one), without an allowlist check.
 - **Why it matters:** an attacker-controlled promise target lets a caller make the contract call arbitrary contracts, often combined with attached funds.
-- **Detection:** `Promise::new` argument analysis; literal account ids pass; parameters and deserialized inputs are flagged unless an allowlist pattern is present.
-- **Refs:** [near-sdk-rs](https://github.com/near/near-sdk-rs)
+- **Detection:** the walk collects `Promise::new` call sites (2-segment paths, macro shapes included) and checks the argument against the method's parameter names (plus `let`-bound aliases). Recognized release valves: a body mention of `allowlist`/`allowed`/`contains` (token scan, macro groups included) or a full owner guard (`body_has_guard`). Literal targets, `env::current_account_id()`, and state-derived fields pass because they are not parameters.
+- **False positives:** escrows and routers whose entire purpose is to pay caller-specified accounts with caller-supplied funds; NEP-141 `ft_transfer`-style methods that move only the earned balance: pair the flag with the authorization facts before you dismiss it.
+- **Refs:** [NEAR docs](https://docs.near.org/smart-contracts/anatomy/actions)
 
 ---
 

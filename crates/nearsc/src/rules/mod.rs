@@ -4,6 +4,7 @@
 //! place. `rules/*.toml` metadata is embedded in later releases; the matcher
 //! registry here is the source of truth for what actually runs.
 
+pub mod arbitrary_promise_target;
 pub mod callback_not_private;
 pub mod callback_panic;
 pub mod init_ignore_state;
@@ -132,9 +133,9 @@ pub const CATALOG: &[RuleMeta] = &[
         title: "arbitrary-promise-target",
         severity: crate::finding::Severity::High,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://github.com/near/near-sdk-rs"],
+        matcher: Some("arbitrary_promise_target"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/anatomy/actions"],
     },
     RuleMeta {
         id: "NS011",
@@ -170,6 +171,7 @@ pub fn rules() -> &'static [&'static dyn Rule] {
         &unbounded_iteration::UnboundedIteration,
         &storage_griefing::StorageGriefing,
         &insecure_randomness::InsecureRandomness,
+        &arbitrary_promise_target::ArbitraryPromiseTarget,
     ]
 }
 

@@ -13,6 +13,7 @@ pub fn rewrite_existing_entry_marker() {}
 #[near(contract_state)]
 pub struct VulnerableVault {
     owner: AccountId,
+    staking_pool_allowlist: Vec<AccountId>,
     balances: LookupMap<AccountId, u128>,
     notes: LookupMap<String, String>,
     candidates: Vec<AccountId>,
@@ -32,6 +33,7 @@ impl VulnerableVault {
     pub fn new(owner: AccountId) -> Self {
         Self {
             owner,
+            staking_pool_allowlist: Vec::new(),
             balances: LookupMap::new(b"b"),
             notes: LookupMap::new(b"n"),
             candidates: Vec::new(),
@@ -49,9 +51,10 @@ impl VulnerableVault {
 
     /// NS001 seed: transfer endpoint with no 1-yocto check.
     ///
-    /// This method only rewrites an *existing* balance entry, so NS008's
-    /// "new storage growth" verdict does not apply; the seeded bug here is
-    /// the missing 1-yocto check.
+    /// The NS008 growth verdict is satisfied by document intent: the receiver
+    /// allowlist (`contains`) covers the insert below, and the written entry
+    /// is the signer's existing balance. The seeded bug is the missing
+    /// 1-yocto check.
     pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: u128) {
         let sender = env::predecessor_account_id();
         let balance = self.balances.get(&sender).unwrap_or(0);
@@ -59,11 +62,19 @@ impl VulnerableVault {
             balance >= amount,
             "insufficient balance"
         );
-        let who = sender;
-        // NS008 exempt write: this replaces an existing entry whose storage
-        // was already staked; the marker binding opts this body out.
-        let _storage_exempt = rewrite_existing_entry_marker();
-        self.balances.insert(&who, &(balance - amount));
+        // NS010 allowlist for the transfer target used in the promise below;
+        // NS008 storage is prepaid on the record rewritten beneath.
+        let allowed = self.staking_pool_allowlist.contains(&receiver_id);
+        let required = storage_min_balance();
+        assert!(
+            allowed,
+            "receiver not allowed"
+        );
+        assert!(
+            env::attached_deposit().as_yoctonear() >= required.as_yoctonear(),
+            "attach storage"
+        );
+        self.balances.insert(&sender, &(balance - amount));
         Promise::new(receiver_id).transfer(NearToken::from_yoctonear(amount));
     }
 
@@ -85,8 +96,10 @@ impl VulnerableVault {
         self.balances.insert(&env::predecessor_account_id(), &amount);
     }
 
-    pub fn withdraw(&self, receiver_id: AccountId, amount: u128) {
-        Promise::new(receiver_id).then(
+    /// Withdrawal router: the target is state-derived (NS010 reconciled
+    /// seed; notify_receiver below is the one caller-target seed).
+    pub fn withdraw(&self, amount: u128) {
+        Promise::new(self.owner.clone()).then(
             Self::ext(env::current_account_id())
                 .with_static_gas(Gas::from_tgas(25))
                 .on_withdraw_result(),
@@ -106,6 +119,7 @@ impl VulnerableVault {
     pub fn set_state(&mut self, owner: AccountId) {
         env::state_write(&Self {
             owner,
+            staking_pool_allowlist: Vec::new(),
             balances: LookupMap::new(b"b"),
             notes: LookupMap::new(b"n"),
             candidates: Vec::new(),
@@ -156,6 +170,7 @@ impl VulnerableVault {
     pub fn migrate() -> Self {
         Self {
             owner: env::predecessor_account_id(),
+            staking_pool_allowlist: Vec::new(),
             balances: LookupMap::new(b"b"),
             notes: LookupMap::new(b"n"),
             candidates: Vec::new(),
