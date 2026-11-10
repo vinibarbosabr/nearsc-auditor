@@ -1,7 +1,11 @@
 use near_sdk::Promise;
 
-/// Fixed: the callback asserts it was called by the contract itself.
-pub fn call(account: near_sdk::AccountId) -> Promise {
+const CALL_TARGETS: [&str; 1] = ["example.near"];
+
+/// Fixed: the callback asserts it was called by the contract itself. The
+/// promise target is allowlisted so this fixture exercises NS002 only.
+pub fn call() -> Promise {
+    let account = CALL_TARGETS[0].to_string();
     Promise::new(account).then(on_result)
 }
 
