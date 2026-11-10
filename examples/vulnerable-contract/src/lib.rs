@@ -67,6 +67,15 @@ impl VulnerableVault {
         );
     }
 
+    /// NS004 seed: promise result consumed without a Failed arm.
+    #[private]
+    pub fn on_deposit_result(&mut self) {
+        if let PromiseResult::Successful(data) = env::promise_result(0) {
+            let amount: u128 = serde_json::from_slice(&data).unwrap_or(0);
+            self.balances.insert(&env::current_account_id(), &amount);
+        }
+    }
+
     pub fn notify_receiver(&self, receiver_id: AccountId, amount: u128) {
         Promise::new(receiver_id)
             .function_call(

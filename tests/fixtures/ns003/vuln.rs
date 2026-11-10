@@ -7,6 +7,6 @@ pub fn call(account: near_sdk::AccountId) -> Promise {
 
 #[private]
 pub fn on_withdraw_result(&mut self) {
-    let amount: u128 = env::promise_result(0).unwrap().try_into().unwrap();
+    let amount = self.pending.pop().unwrap();
     self.balance += amount;
 }

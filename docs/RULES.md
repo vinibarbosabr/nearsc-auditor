@@ -99,11 +99,12 @@ pub fn on_swap(&mut self) {
 
 ## NS004: unchecked-promise-result
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `unchecked_promise_result`
 - **Severity:** high · **Confidence:** heuristic · **Tags:** async, promises
-- **Detects:** callback code that consumes a promise result without matching `PromiseResult::Failed`, including `#[callback]` usage where failure handling is expected.
+- **Detects:** functions that consume a promise result (call `env::promise_result` or name `PromiseResult`) without a `PromiseResult::Failed` match or `if let ... Failed` arm.
+- **Amended scope (2026-11-10):** `#[callback*]`-deserialized parameters are **not** flagged. The near-sdk macros unwrap and panic on failure by design; that is documented semantics, not a finding, and flagging it would mark idiomatic code. Review callbacks that rely on the macro behavior where a silent failure corrupts state.
 - **Why it matters:** cross-contract calls fail. Code that assumes success updates state on a lie; code that panics on failure can brick flows. Both are common and both are detectable.
-- **Detection:** callback bodies that call `env::promise_result` / use `#[callback]` without a `match`/`if let` on `PromiseResult::Failed`.
+- **Detection:** functions whose bodies call `env::promise_result` or mention `PromiseResult` without a `Failed` arm in a `match` or `if let`.
 
 ```rust
 #[private]
