@@ -6,6 +6,7 @@
 
 pub mod callback_not_private;
 pub mod callback_panic;
+pub mod init_ignore_state;
 pub mod one_yocto_missing;
 pub mod unchecked_promise_result;
 
@@ -28,6 +29,7 @@ pub fn run_all(context: &FileContext) -> Vec<Finding> {
         &callback_not_private::CallbackNotPrivate,
         &callback_panic::CallbackPanic,
         &unchecked_promise_result::UncheckedPromiseResult,
+        &init_ignore_state::InitIgnoreState,
     ];
     rules.iter().flat_map(|rule| rule.check(context)).collect()
 }
