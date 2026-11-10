@@ -68,9 +68,8 @@ fn example_contract_flags_callback_not_private() {
         result.parse_errors
     );
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
-    // The example contract seeds multiple rule classes (see the `/// NS0xx seed:`
-    // comments in src/lib.rs); NS002 is the shipped one today. Upgrade this to
-    // one containment assertion per seed when the full rule set lands Wednesday.
+    // NS002 stays as the shippable containment assertion here; NS001/NS003/
+    // NS005/NS006 assert their own seeds in their per-rule test files.
     assert!(
         ids.contains(&"NS002"),
         "NS002 missing from example contract scan: {ids:?}"

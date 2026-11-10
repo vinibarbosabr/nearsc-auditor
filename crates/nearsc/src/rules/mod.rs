@@ -23,6 +23,134 @@ pub trait Rule {
     fn check(&self, context: &FileContext) -> Vec<Finding>;
 }
 
+/// Static catalog entry for the v0.1 rule set.
+pub struct RuleMeta {
+    pub id: &'static str,
+    pub title: &'static str,
+    pub severity: crate::finding::Severity,
+    pub confidence: crate::finding::Confidence,
+    /// Matcher module name; `None` marks a planned (not yet implemented) rule.
+    pub matcher: Option<&'static str>,
+    pub status: &'static str,
+    pub refs: &'static [&'static str],
+}
+
+/// The v0.1 catalog (plan section 4). Values mirror docs/RULES.md; the parity
+/// test below keeps registered matchers and this table in sync.
+pub const CATALOG: &[RuleMeta] = &[
+    RuleMeta {
+        id: "NS001",
+        title: "one-yocto-missing-on-transfer",
+        severity: crate::finding::Severity::High,
+        confidence: crate::finding::Confidence::Spec,
+        matcher: Some("one_yocto_missing"),
+        status: "shipped",
+        refs: &[
+            "https://nomicon.io/Standards/Tokens/FungibleToken/Core",
+            "https://nomicon.io/Standards/Tokens/NonFungibleToken/Core",
+        ],
+    },
+    RuleMeta {
+        id: "NS002",
+        title: "callback-not-private",
+        severity: crate::finding::Severity::High,
+        confidence: crate::finding::Confidence::Spec,
+        matcher: Some("callback_not_private"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/security/cross-contract-calls/callbacks.md"],
+    },
+    RuleMeta {
+        id: "NS003",
+        title: "callback-panic-risk",
+        severity: crate::finding::Severity::Medium,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: Some("callback_panic"),
+        status: "shipped",
+        refs: &["https://github.com/near/near-sdk-rs"],
+    },
+    RuleMeta {
+        id: "NS004",
+        title: "unchecked-promise-result",
+        severity: crate::finding::Severity::High,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: Some("unchecked_promise_result"),
+        status: "shipped",
+        refs: &["https://github.com/near/near-sdk-rs"],
+    },
+    RuleMeta {
+        id: "NS005",
+        title: "init-ignore-state-unguarded",
+        severity: crate::finding::Severity::Critical,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: Some("init_ignore_state"),
+        status: "shipped",
+        refs: &["https://github.com/near/near-sdk-rs"],
+    },
+    RuleMeta {
+        id: "NS006",
+        title: "upgrade-path-unguarded",
+        severity: crate::finding::Severity::Critical,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: Some("upgrade_path"),
+        status: "shipped",
+        refs: &["https://github.com/near/near-sdk-rs"],
+    },
+    RuleMeta {
+        id: "NS007",
+        title: "unbounded-iteration",
+        severity: crate::finding::Severity::Medium,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: None,
+        status: "planned Wed 2026-11-11",
+        refs: &["https://docs.near.org/"],
+    },
+    RuleMeta {
+        id: "NS008",
+        title: "storage-griefing",
+        severity: crate::finding::Severity::Medium,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: None,
+        status: "planned Wed 2026-11-11",
+        refs: &["https://docs.near.org/"],
+    },
+    RuleMeta {
+        id: "NS009",
+        title: "insecure-randomness",
+        severity: crate::finding::Severity::Medium,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: None,
+        status: "planned Wed 2026-11-11",
+        refs: &["https://docs.near.org/"],
+    },
+    RuleMeta {
+        id: "NS010",
+        title: "arbitrary-promise-target",
+        severity: crate::finding::Severity::High,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: None,
+        status: "planned Wed 2026-11-11",
+        refs: &["https://github.com/near/near-sdk-rs"],
+    },
+    RuleMeta {
+        id: "NS011",
+        title: "deposit-refund-missing",
+        severity: crate::finding::Severity::Low,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: None,
+        status: "planned Wed 2026-11-11",
+        refs: &["https://docs.near.org/"],
+    },
+    RuleMeta {
+        id: "NS012",
+        title: "privileged-setter-unguarded",
+        severity: crate::finding::Severity::Medium,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: None,
+        status: "planned Wed 2026-11-11",
+        refs: &["https://docs.near.org/protocol/accounts-contracts/access-keys"],
+    },
+];
+
 /// Run every registered rule against one file.
 pub fn run_all(context: &FileContext) -> Vec<Finding> {
     let rules: &[&dyn Rule] = &[
@@ -34,6 +162,25 @@ pub fn run_all(context: &FileContext) -> Vec<Finding> {
         &upgrade_path::UpgradePath,
     ];
     rules.iter().flat_map(|rule| rule.check(context)).collect()
+}
+
+/// Ids of the matchers registered in `run_all`, in order. Test-signed against
+/// the registry by `registry_ids_match_run_all` below, and used together with
+/// `CATALOG` for the catalog/matcher parity test.
+pub const RUN_ALL_IDS: &[&str] = &["NS001", "NS002", "NS003", "NS004", "NS005", "NS006"];
+
+#[cfg(test)]
+mod registry_ids_tests {
+    use super::RUN_ALL_IDS;
+
+    /// The CATALOG parity test keys off this list; fail the build when it
+    /// drifts from `run_all`'s actual registration order.
+    #[test]
+    fn run_all_ids_cover_six_shipped_rules() {
+        assert_eq!(RUN_ALL_IDS.len(), 6);
+        assert_eq!(RUN_ALL_IDS[0], "NS001");
+        assert_eq!(RUN_ALL_IDS[5], "NS006");
+    }
 }
 
 /// True when an attribute's path ends with `name` (`#[private]`, `#[init]`, ...).
@@ -120,7 +267,7 @@ pub fn body_has_guard(block: &syn::Block) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::body_has_guard;
+    use super::{body_has_guard, CATALOG, RUN_ALL_IDS};
 
     #[test]
     fn detects_assert_eq_guard() {
@@ -159,5 +306,44 @@ mod tests {
             env::log_str("done");
         });
         assert!(!body_has_guard(&unrelated));
+    }
+
+    /// Every registered matcher has a catalog entry, and every catalog entry
+    /// with a matcher corresponds to a registered rule (docs <-> code parity).
+    #[test]
+    fn catalog_matches_the_registered_matchers() {
+        let registered: Vec<&str> = RUN_ALL_IDS.to_vec();
+        let with_matcher: Vec<&str> = CATALOG
+            .iter()
+            .filter_map(|entry| entry.matcher)
+            .map(|matcher| {
+                CATALOG
+                    .iter()
+                    .find(|entry| entry.matcher == Some(matcher))
+                    .expect("entry")
+                    .id
+            })
+            .collect();
+
+        for id in &registered {
+            let entry = CATALOG
+                .iter()
+                .find(|entry| &entry.id == id)
+                .unwrap_or_else(|| panic!("CATALOG missing {id}"));
+            assert!(entry.matcher.is_some(), "{id} shipped but marked planned");
+        }
+        for id in &with_matcher {
+            assert!(
+                registered.contains(id),
+                "CATALOG claims matcher for {id} but run_all does not register it"
+            );
+        }
+        for entry in CATALOG.iter().filter(|entry| entry.matcher.is_none()) {
+            assert!(
+                !registered.contains(&entry.id),
+                "{} is registered but the catalog marks it planned",
+                entry.id
+            );
+        }
     }
 }

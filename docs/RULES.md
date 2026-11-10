@@ -1,6 +1,6 @@
 # Rules
 
-> **Status:** specification for v0.1 (2026-11-10). Rule ids, severities, and detection notes are final unless the build proves a rule infeasible. Per-rule status is labeled in each section: only NS002 has a shipped matcher today. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle.
+> **Status:** specification for v0.1 (2026-11-10). Rule ids, severities, and detection notes are final unless the build proves a rule infeasible. Per-rule status is labeled in each section: NS001-NS006 have shipped matchers today. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary (`--help` for filters).
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
 
@@ -174,7 +174,6 @@ pub fn migrate() -> Self {
 ---
 
 ## NS007: unbounded-iteration
-
 - **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** gas, griefing
 - **Detects:** `for` loops over `Vec` or collection iterators in public methods where the collection can grow from user input, without pagination bounds.
