@@ -159,6 +159,24 @@ fn output_json_writes_file() {
     assert!(content.contains("\"rule_id\": \"NS002\""));
 }
 
+/// SARIF writes through --output as a file too.
+#[test]
+fn output_sarif_writes_file() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let out = dir.path().join("report.sarif");
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns002/vuln.rs"))
+        .args(["--format", "sarif", "--output"])
+        .arg(&out)
+        .assert()
+        .code(0)
+        .stdout(predicates::str::is_empty());
+    let content = std::fs::read_to_string(&out).expect("sarif file");
+    let doc: serde_json::Value = serde_json::from_str(&content).expect("sarif parses");
+    assert_eq!(doc["version"], "2.1.0");
+}
+
 #[test]
 fn rules_list_prints_the_full_catalog() {
     nearsc()
@@ -225,4 +243,73 @@ fn rules_show_prints_entry_and_unknown_id_fails() {
         .assert()
         .code(2)
         .stderr(contains("unknown rule id"));
+}
+
+/// SARIF output parses and its shape matches plan section 5: driver rules,
+/// one result per finding, level mapping, relative artifact uri.
+#[test]
+fn sarif_output_is_valid_sarif_2_1_0() {
+    let stdout = nearsc()
+        .arg("scan")
+        .arg(fixture("ns002/vuln.rs"))
+        .args(["--format", "sarif"])
+        .assert()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+    let doc: serde_json::Value = serde_json::from_slice(&stdout).expect("sarif is valid json");
+    assert_eq!(
+        doc["$schema"],
+        "https://json.schemastore.org/sarif-2.1.0.json"
+    );
+    assert_eq!(doc["version"], "2.1.0");
+    let run = &doc["runs"][0];
+    assert_eq!(run["tool"]["driver"]["name"], "nearsc");
+    assert!(
+        run["tool"]["driver"]["rules"]
+            .as_array()
+            .expect("driver rules")
+            .iter()
+            .any(|rule| rule["id"] == "NS002"),
+        "driver rules carry the catalog"
+    );
+    let result = &run["results"][0];
+    assert_eq!(result["ruleId"], "NS002");
+    assert_eq!(result["level"], "error", "critical/high map to error");
+    assert!(
+        result["message"]["text"].is_string(),
+        "message text present"
+    );
+    let location = &result["locations"][0]["physicalLocation"];
+    assert!(
+        location["artifactLocation"]["uri"]
+            .as_str()
+            .expect("uri")
+            .ends_with("vuln.rs"),
+        "artifact uri is the relative path"
+    );
+    assert_eq!(location["region"]["startLine"], 13);
+}
+
+/// Medium findings report as "warning"; low/info as "note" (plan section 4).
+#[test]
+fn sarif_level_mapping_covers_all_severities() {
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/vulnerable-contract");
+    let stdout = nearsc()
+        .arg("scan")
+        .arg(&example)
+        .args(["--format", "sarif"])
+        .assert()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+    let doc: serde_json::Value = serde_json::from_slice(&stdout).expect("sarif is valid json");
+    let results = doc["runs"][0]["results"].as_array().expect("results array");
+    let levels: Vec<&str> = results.iter().filter_map(|r| r["level"].as_str()).collect();
+    assert!(levels.contains(&"error"), "criticals are errors");
+    assert!(levels.contains(&"warning"), "mediums are warnings");
+    assert!(levels.contains(&"note"), "lows are notes");
+    assert_eq!(results.len(), 12, "one result per finding");
 }
