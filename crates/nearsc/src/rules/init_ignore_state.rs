@@ -6,7 +6,6 @@
 //! Plain `#[init]` is not flagged: without `ignore_state` the call fails
 //! when state already exists, so it is not the rule's target.
 
-use syn::spanned::Spanned;
 use syn::visit::Visit;
 use syn::{ImplItemFn, ItemFn};
 
