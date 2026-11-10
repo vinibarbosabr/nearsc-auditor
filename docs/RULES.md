@@ -174,11 +174,13 @@ pub fn migrate() -> Self {
 ---
 
 ## NS007: unbounded-iteration
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+
+- **Status:** shipped · **Matcher:** `unbounded_iteration`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** gas, griefing
-- **Detects:** `for` loops over `Vec` or collection iterators in public methods where the collection can grow from user input, without pagination bounds.
+- **Detects:** `for` loops over `self`-rooted collection fields in public methods (direct, borrowed, or via `.iter()`/`.into_iter()`/`.keys()`/`.values()`/`.iter_from()`/`.drain()`) where the collection can grow from user input, without pagination bounds.
 - **Why it matters:** NEAR gas is finite per receipt. An unbounded loop that grows with users eventually makes the method uncallable, locking funds or governance actions.
-- **Detection:** loop scan; flag when the iterated collection is mutated by public methods elsewhere in the file or crate.
+- **Detection:** AST walk of `for` loops in public, non-`#[init]`, non-`#[private]` methods. v0.1 scope: the iterable must be rooted at `self` (`self.field`, `&self.field`, `self.field.iter()`, chains of such calls) so the reported loop is over state callers can grow; loops over function-local collections are not flagged. A bounded window (`.skip(offset).take(limit)`) removes the finding, as does manual `break` bounding.
+- **False positives:** a self-collection whose growth is capped by ingestion limits elsewhere; the message asks for pagination evidence before you dismiss it.
 - **Refs:** [NEAR docs](https://docs.near.org/)
 
 ---
