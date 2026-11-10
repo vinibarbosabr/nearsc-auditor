@@ -76,6 +76,15 @@ impl VulnerableVault {
         }
     }
 
+    /// NS006 seed: state write reachable without a guard.
+    pub fn set_state(&mut self, owner: AccountId) {
+        env::state_write(&Self {
+            owner,
+            balances: LookupMap::new(b"b"),
+            pending_withdrawals: Vec::new(),
+        });
+    }
+
     pub fn notify_receiver(&self, receiver_id: AccountId, amount: u128) {
         Promise::new(receiver_id)
             .function_call(

@@ -133,7 +133,7 @@ pub fn on_payout(&mut self) {
 
 ## NS005: init-ignore-state-unguarded
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `init_ignore_state`
 - **Severity:** critical · **Confidence:** heuristic · **Tags:** init, migrate, access-control
 - **Detects:** `#[init(ignore_state)]` functions or migrate-style functions that do not assert the predecessor is the owner or the contract itself.
 - **Why it matters:** `#[init(ignore_state)]` skips the "state must not exist" check. A public migrate method without access control lets any account overwrite contract state.
@@ -164,11 +164,11 @@ pub fn migrate() -> Self {
 
 ## NS006: upgrade-path-unguarded
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `upgrade_path`
 - **Severity:** critical · **Confidence:** heuristic · **Tags:** upgrade, access-control
 - **Detects:** direct `state_write` / `env::state_write` calls, or migrate deserialization patterns, reachable from a public method without an owner or self check.
 - **Why it matters:** state writes bypass the normal storage model and are the last step of an upgrade. If an attacker can reach one, they own the contract.
-- **Detection:** call-site scan for state write APIs; walk up to the enclosing public function; check for predecessor/owner assertions.
+- **Detection:** call-site scan for state write APIs; walk up to the enclosing public function; check for predecessor/owner assertions. **v0.1 scope:** direct `state_write` call sites in unguarded functions only; migrate-deserialization reachability lands with dataflow analysis in v0.2.
 - **Refs:** [near-sdk-rs](https://github.com/near/near-sdk-rs)
 
 ---

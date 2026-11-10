@@ -9,6 +9,7 @@ pub mod callback_panic;
 pub mod init_ignore_state;
 pub mod one_yocto_missing;
 pub mod unchecked_promise_result;
+pub mod upgrade_path;
 
 use syn::visit::Visit;
 use syn::{Attribute, Expr};
@@ -30,6 +31,7 @@ pub fn run_all(context: &FileContext) -> Vec<Finding> {
         &callback_panic::CallbackPanic,
         &unchecked_promise_result::UncheckedPromiseResult,
         &init_ignore_state::InitIgnoreState,
+        &upgrade_path::UpgradePath,
     ];
     rules.iter().flat_map(|rule| rule.check(context)).collect()
 }
