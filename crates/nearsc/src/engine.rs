@@ -37,6 +37,33 @@ pub struct Summary {
     pub info: usize,
 }
 
+impl Summary {
+    /// Recount from a (possibly filtered) findings list so the summary always
+    /// matches what is reported.
+    pub fn recount(&mut self, findings: &[crate::finding::Finding]) {
+        self.critical = findings
+            .iter()
+            .filter(|f| f.severity == Severity::Critical)
+            .count();
+        self.high = findings
+            .iter()
+            .filter(|f| f.severity == Severity::High)
+            .count();
+        self.medium = findings
+            .iter()
+            .filter(|f| f.severity == Severity::Medium)
+            .count();
+        self.low = findings
+            .iter()
+            .filter(|f| f.severity == Severity::Low)
+            .count();
+        self.info = findings
+            .iter()
+            .filter(|f| f.severity == Severity::Info)
+            .count();
+    }
+}
+
 /// Result of one scan, shaped like the public JSON envelope (plan section 5.1).
 #[derive(Debug, Clone, Serialize)]
 pub struct ScanResult {
