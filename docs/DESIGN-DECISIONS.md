@@ -63,3 +63,15 @@
 **Decision:** MIT repo-wide. KB entries summarize and cite; verbatim copies only with a compatible license and attribution.
 
 **Why:** maximum adoption; clean legal posture for a public-goods tool.
+
+---
+
+## D-009: heuristic rules scope to explicit API use, not macro idioms
+
+**Context:** the original NS004 spec text said to flag "`#[callback]` usage where failure handling is expected". Every near-sdk `#[callback]`/`#[callback_vec]` deserialization unwraps internally and panics on failure by design, so the literal reading flags idiomatic, correct code.
+
+**Decision (2026-11-10, with Vini):** NS004 flags explicit `env::promise_result` / `PromiseResult` consumption without a `PromiseResult::Failed` match or if-let arm. `#[callback*]` parameters are not flagged; the macro's unwrap-and-panic behavior is documented semantics. Same principle applied to NS006: v0.1 flags direct `state_write` call sites in unguarded functions; migrate-deserialization reachability waits for v0.2 dataflow analysis.
+
+**Why:** a heuristic rule's value is signal per finding. Flagging by-design macro behavior trains users to ignore the tool, which is the worst outcome for a security scanner. Docs note the macro behavior instead (docs/RULES.md, NS004 "Amended scope").
+
+**Consequences:** callbacks that rely on `#[callback]`'s panic-on-failure are not findings; reviewers reading such code should ask whether a silent panic mid-flow is acceptable there. The amendment and its date are recorded in docs/RULES.md per rule.
