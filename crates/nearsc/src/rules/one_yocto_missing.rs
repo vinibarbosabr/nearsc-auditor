@@ -5,6 +5,7 @@
 //! must be signed with a full-access key. Omitting the check lets a
 //! function-call key move tokens within its method allowance.
 
+use proc_macro2::TokenTree;
 use syn::visit::Visit;
 use syn::{ImplItemFn, ItemFn};
 
@@ -98,7 +99,15 @@ impl Collector {
 /// Recognized forms:
 /// - a call or macro whose path ends in `assert_one_yocto`;
 /// - a comparison where one side calls `attached_deposit` and the other is the
-///   literal `1` (or `NearToken::from_yoctonear(1)` / `1` via `as_yoctonear`).
+///   literal `1`, or where the operand tokens mention a `from_yoctonear(1)`
+///   call;
+/// - a comparison inside `assert!`/`assert_eq!`/`require!`, probed token-wise
+///   the same way.
+///
+/// Macro checks are token-based: a comparison hidden behind an exotic macro
+/// that does not name `attached_deposit` or `assert_one_yocto` is still
+/// reported. A zero-yocto comparison (`!= from_yoctonear(0)`) is not a guard
+/// and is reported.
 fn expr_checks_one_yocto(expr: &syn::Expr) -> bool {
     #[derive(Default)]
     struct Probe {
@@ -161,41 +170,19 @@ fn expr_checks_one_yocto(expr: &syn::Expr) -> bool {
     }
 
     let mut probe = Probe::default();
-    if let syn::Expr::Binary(binary) = expr {
+    if matches!(expr, syn::Expr::Binary(_)) {
         // A comparison: attached_deposit on one side, 1 on the other.
         probe.visit_expr(expr);
         if probe.attached_deposit && probe.literal_one {
             return true;
         }
-        // Attached deposit compared against a non-1 constant (e.g. from_yoctonear(1))
-        // is detected through the tokens of the other operand.
-        let other = tokens_of(&binary.right).contains("from_yoctonear")
-            || tokens_of(&binary.left).contains("from_yoctonear");
-        if probe.attached_deposit && other {
-            return true;
-        }
+        // A `from_yoctonear(1)` call wraps the literal; the literal is still
+        // in the visited tokens, so this also covers
+        // `attached_deposit != from_yoctonear(1)`.
         return false;
     }
     probe.visit_expr(expr);
     probe.assert_one_yocto
-}
-
-fn tokens_of(expr: &syn::Expr) -> String {
-    let mut tokens = String::new();
-    let mut visitor = TokensVisitor { out: &mut tokens };
-    visitor.visit_expr(expr);
-    tokens
-}
-
-struct TokensVisitor<'a> {
-    out: &'a mut String,
-}
-
-impl<'ast, 'a> Visit<'ast> for TokensVisitor<'a> {
-    fn visit_macro(&mut self, mac: &'ast syn::Macro) {
-        self.out.push_str(&mac.tokens.to_string());
-        syn::visit::visit_macro(self, mac);
-    }
 }
 
 impl Collector {
@@ -257,6 +244,35 @@ fn stmt_checks_one_yocto(stmt: &syn::Stmt) -> bool {
             .init
             .as_ref()
             .is_some_and(|init| expr_checks_one_yocto(&init.expr)),
+        syn::Stmt::Macro(stmt_mac) => {
+            // A bare `assert!(...)`/`assert_eq!(...)`/`require!(...)` statement
+            // is a `Stmt::Macro`, so the comparison never reaches the binary
+            // branch above. Probe the macro tokens for an attached_deposit
+            // identifier together with the literal `1`. Token-based, same
+            // limits as `Probe`: a zero-yocto argument (`from_yoctonear(0)`)
+            // carries no `1` literal and stays reported.
+            let mut has_deposit = false;
+            let mut has_one = false;
+            let mut pending: Vec<TokenTree> = stmt_mac.mac.tokens.clone().into_iter().collect();
+            while !(has_deposit && has_one) {
+                let Some(tree) = pending.pop() else {
+                    break;
+                };
+                match tree {
+                    TokenTree::Ident(ident) => {
+                        has_deposit |= ident == "attached_deposit";
+                    }
+                    TokenTree::Literal(lit) => {
+                        has_one |= lit.to_string() == "1";
+                    }
+                    TokenTree::Group(group) => {
+                        pending.extend(group.stream());
+                    }
+                    TokenTree::Punct(_) => {}
+                }
+            }
+            has_deposit && has_one
+        }
         _ => false,
     }
 }
