@@ -1,10 +1,10 @@
 # Rules
 
-> **Status:** specification for v0.1 (2026-11-10). Rule ids, severities, and detection notes are final unless the build proves a rule infeasible. Per-rule status is labeled in each section: NS001-NS006 have shipped matchers today. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary (`--help` for filters).
+> **Status:** specification for v0.1 (2026-11-10). Rule ids, severities, and detection notes are final unless the build proves a rule infeasible. Per-rule status is labeled in each section: NS001-NS006 have shipped matchers today. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary.
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
 
-Machine-readable metadata lives in `rules/<ID>.toml` (**planned, lands with the `v0.1.0` tag**, see [ARCHITECTURE.md](ARCHITECTURE.md)); until then this page is the source of truth for ids, severities, and detection notes.
+Machine-readable metadata lives in `rules/<ID>.toml` (**planned, lands with the `v0.1.0` tag**, see [ARCHITECTURE.md](ARCHITECTURE.md)); until then this page is the source of truth for ids, severities, and detection notes. The binary renders `nearsc rules list` / `nearsc rules show <id>` from the `CATALOG` table in `crates/nearsc/src/rules/mod.rs`, which the catalog/matcher parity test in the same file keeps in sync with the registered matchers.
 
 ---
 
@@ -250,13 +250,17 @@ Real output from `cargo run -p nearsc -- scan examples/vulnerable-contract --for
   "severity": "high",
   "confidence": "spec",
   "file": "src/lib.rs",
-  "line": 48,
+  "line": 50,
   "column": 12,
   "snippet": "pub fn on_deposit_complete(&mut self, amount: u128) {",
   "message": "callback `on_deposit_complete` can be invoked by any account; add #[private] or assert predecessor == current_account_id",
-  "refs": ["https://docs.near.org/smart-contracts/security/cross-contract-calls/callbacks.md"]
+  "refs": [
+    "https://docs.near.org/smart-contracts/security/cross-contract-calls/callbacks.md"
+  ]
 }
 ```
+
+The full envelope holds 6 findings (2 critical, 3 high, 1 medium) plus the header fields; see the scan envelope paragraph below.
 
 Scan envelope: `tool`, `version`, `target`, `summary` (counts per severity), `findings`, `parse_errors`. No `generated_at`: findings and the envelope are byte-stable for the same input (determinism contract). `generated_at` is not planned to return inside findings; if an envelope-level timestamp is ever added it will be CLI-layer only, opt-in.
 

@@ -35,7 +35,7 @@ Keeping the MCP server in a separate crate means `cargo install nearsc` does not
 2. **Parse.** `syn::parse_file` per file. Parse errors become `parse_errors` entries, never fatal.
 3. **Context.** For each file, index functions, attributes, trait impls, and call sites (`.then()`, `Promise::new`, `env::*`).
 4. **Match.** Run registered matchers. Each matcher is a pure function `(&FileContext) -> Vec<Finding>`.
-5. **Merge.** Stable sort by `(file, line, column, rule_id)`. Deduplicate identical `(rule_id, file, line)`.
+5. **Merge.** Stable sort by `(file, line, rule_id)`. Deduplication is not implemented in v0.1: no shipped rule can emit two findings for one location. If a future rule can, add the dedup step here and update this note.
 6. **Report.** Render text, JSON, SARIF, or HTML.
 
 Determinism: no network in the scan path, no timestamps inside findings, no parallelism-dependent ordering in v0.1.
