@@ -25,7 +25,7 @@ enum Command {
         /// Directory or .rs file to scan
         path: PathBuf,
         /// Output format
-        #[arg(long, default_value = "text", value_parser = ["text", "json", "sarif"])]
+        #[arg(long, default_value = "text", value_parser = ["text", "json", "sarif", "html"])]
         format: String,
         /// Exit with code 1 when a finding at or above this severity is present
         #[arg(long, value_enum)]
@@ -227,6 +227,7 @@ fn render_and_gate(
     let rendered: anyhow::Result<String> = match format.as_str() {
         "json" => nearsc::report::render_json(&result),
         "sarif" => nearsc::report::render_sarif(&result),
+        "html" => nearsc::report::render_html(&result),
         _ => {
             let mut rendered = String::new();
             nearsc::report::render_text(&mut rendered, &result);

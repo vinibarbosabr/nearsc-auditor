@@ -159,6 +159,83 @@ fn output_json_writes_file() {
     assert!(content.contains("\"rule_id\": \"NS002\""));
 }
 
+/// HTML reports: untrusted snippets are escaped and markup never leaks.
+#[test]
+fn html_report_escapes_untrusted_snippets() {
+    // Answer the escaping question directly: a hand-written ScanResult with a
+    // hostile snippet renders escaped (through report::html::render).
+    let scan = nearsc::engine::ScanResult {
+        tool: "nearsc",
+        version: "0.1.0",
+        target: "<script>alert(1)</script>".to_string(),
+        findings: vec![nearsc::finding::Finding {
+            rule_id: "NS002",
+            title: "x",
+            severity: nearsc::finding::Severity::High,
+            confidence: nearsc::finding::Confidence::Spec,
+            file: "a<b.rs".to_string(),
+            line: 3,
+            column: 5,
+            snippet: "<script>alert(1)</script>".to_string(),
+            message: "payload & \"quotes\" 'single' <em>markup</em>".to_string(),
+            refs: &["https://example.com/"],
+        }],
+        parse_errors: vec![],
+        summary: nearsc::engine::Summary {
+            critical: 0,
+            high: 1,
+            medium: 0,
+            low: 0,
+            info: 0,
+        },
+    };
+    let content = nearsc::report::html::render(&scan);
+    assert!(
+        !content.contains("<script>alert"),
+        "unescaped markup leaked into the report"
+    );
+    assert!(content.contains("&lt;script&gt;"), "{content}");
+    assert!(content.contains("&quot;"));
+    assert!(content.contains("&#39;"));
+    assert!(content.contains("&lt;b.rs"));
+}
+
+/// The full report shape: summary cards, findings with refs, the footer
+/// disclaimer, and no JavaScript.
+#[test]
+fn html_report_is_self_contained() {
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/vulnerable-contract");
+    let out_file = tempfile::tempdir().expect("tempdir");
+    let out = out_file.path().join("report.html");
+    nearsc()
+        .arg("scan")
+        .arg(&example)
+        .args(["--format", "html", "--output"])
+        .arg(&out)
+        .assert()
+        .code(0);
+    let content = std::fs::read_to_string(&out).expect("html file");
+    assert!(content.starts_with("<!DOCTYPE html>"));
+    assert!(
+        !content.contains("<script"),
+        "html report ships no javascript"
+    );
+    for severity in [
+        "severity-critical",
+        "severity-high",
+        "severity-medium",
+        "severity-low",
+    ] {
+        assert!(content.contains(severity), "missing {severity}");
+    }
+    assert!(content.contains("NS001") && content.contains("NS012"));
+    assert!(
+        content.contains("Static analysis output") && content.contains("not a substitute"),
+        "the disclaimer must be present"
+    );
+    assert_eq!(content.matches("<article").count(), 12);
+}
+
 /// SARIF writes through --output as a file too.
 #[test]
 fn output_sarif_writes_file() {
