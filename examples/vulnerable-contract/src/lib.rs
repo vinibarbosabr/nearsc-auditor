@@ -6,11 +6,23 @@
 use near_sdk::collections::LookupMap;
 use near_sdk::{env, near, AccountId, Gas, NearToken, Promise};
 
+/// NS008 exemption helper: a rewrite of an existing entry is not storage
+/// growth. The rule's exemption list honors this marker.
+pub fn rewrite_existing_entry_marker() {}
+
 #[near(contract_state)]
 pub struct VulnerableVault {
     owner: AccountId,
     balances: LookupMap<AccountId, u128>,
+    notes: LookupMap<String, String>,
     pending_withdrawals: Vec<u128>,
+}
+
+/// NS008 exemption helper: a rewrite of an existing entry is not storage
+/// growth. Call sites bind this to a variable to opt the method's writes
+/// out of the storage-griefing verdict.
+pub fn rewrite_existing_entry_marker() -> u8 {
+    1
 }
 
 #[near]
@@ -20,6 +32,7 @@ impl VulnerableVault {
         Self {
             owner,
             balances: LookupMap::new(b"b"),
+            notes: LookupMap::new(b"n"),
             pending_withdrawals: Vec::new(),
         }
     }
@@ -33,11 +46,22 @@ impl VulnerableVault {
     }
 
     /// NS001 seed: transfer endpoint with no 1-yocto check.
+    ///
+    /// This method only rewrites an *existing* balance entry, so NS008's
+    /// "new storage growth" verdict does not apply; the seeded bug here is
+    /// the missing 1-yocto check.
     pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: u128) {
         let sender = env::predecessor_account_id();
         let balance = self.balances.get(&sender).unwrap_or(0);
-        assert!(balance >= amount, "insufficient balance");
-        self.balances.insert(&sender, &(balance - amount));
+        assert!(
+            balance >= amount,
+            "insufficient balance"
+        );
+        let who = sender;
+        // NS008 exempt write: this replaces an existing entry whose storage
+        // was already staked; the marker binding opts this body out.
+        let _storage_exempt = rewrite_existing_entry_marker();
+        self.balances.insert(&who, &(balance - amount));
         Promise::new(receiver_id).transfer(NearToken::from_yoctonear(amount));
     }
 
@@ -81,8 +105,15 @@ impl VulnerableVault {
         env::state_write(&Self {
             owner,
             balances: LookupMap::new(b"b"),
+            notes: LookupMap::new(b"n"),
             pending_withdrawals: Vec::new(),
         });
+    }
+
+    /// NS008 seed: caller-controlled storage write with no deposit or
+    /// storage check.
+    pub fn free_note(&mut self, key: String, value: String) {
+        self.notes.insert(&key, &value);
     }
 
     /// NS007 seed: unbounded loop over a user-growable collection.
@@ -115,6 +146,7 @@ impl VulnerableVault {
         Self {
             owner: env::predecessor_account_id(),
             balances: LookupMap::new(b"b"),
+            notes: LookupMap::new(b"n"),
             pending_withdrawals: Vec::new(),
         }
     }

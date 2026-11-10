@@ -187,11 +187,12 @@ pub fn migrate() -> Self {
 
 ## NS008: storage-griefing
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `storage_griefing`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** storage, griefing
-- **Detects:** collection `insert`/`set` on user-controlled input without an attached-deposit or storage check.
+- **Detects:** `insert`/`set`/`insert_id`/`insert_checked` calls rooted at `self` collections in public, non-`#[payable]` methods whose body never mentions `attached_deposit` or a storage-management check.
 - **Why it matters:** storage costs NEAR. A method that stores attacker-controlled data for free lets an attacker drain the contract's balance through storage stake.
-- **Detection:** insert/set call scan; check the enclosing function for `attached_deposit` or storage-cost checks.
+- **Detection:** AST scan for collection writes rooted at `self` (LookupMap, UnorderedMap, TreeMap, Vector, LookupSet method shapes) inside public methods. Exemptions: `#[private]` callbacks, `#[init]`, `#[payable]` (deposit accompanies every call), and bodies mentioning `attached_deposit`, `storage_usage`, `storage_min_balance`, `unregister`, `storage_byte_cost`, or `required_deposit` (token-based scan, macro groups included). Writes to function-local maps are never flagged: only persistent `self.` state is contract storage.
+- **False positives:** collections whose growth is self-funded by an internal accounting elsewhere; the message asks for the deposit path before you dismiss it.
 - **Refs:** [NEAR docs](https://docs.near.org/)
 
 ---

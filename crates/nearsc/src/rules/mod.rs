@@ -9,6 +9,7 @@ pub mod callback_panic;
 pub mod init_ignore_state;
 pub mod one_yocto_missing;
 pub mod privileged_setter;
+pub mod storage_griefing;
 pub mod unbounded_iteration;
 pub mod unchecked_promise_result;
 pub mod upgrade_path;
@@ -112,9 +113,9 @@ pub const CATALOG: &[RuleMeta] = &[
         title: "storage-griefing",
         severity: crate::finding::Severity::Medium,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://docs.near.org/"],
+        matcher: Some("storage_griefing"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/anatomy/optimizations"],
     },
     RuleMeta {
         id: "NS009",
@@ -166,6 +167,7 @@ pub fn rules() -> &'static [&'static dyn Rule] {
         &upgrade_path::UpgradePath,
         &privileged_setter::PrivilegedSetter,
         &unbounded_iteration::UnboundedIteration,
+        &storage_griefing::StorageGriefing,
     ]
 }
 
