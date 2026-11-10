@@ -4,10 +4,16 @@
 //! place. `rules/*.toml` metadata is embedded in later releases; the matcher
 //! registry here is the source of truth for what actually runs.
 
+pub mod arbitrary_promise_target;
 pub mod callback_not_private;
 pub mod callback_panic;
+pub mod deposit_refund_missing;
 pub mod init_ignore_state;
+pub mod insecure_randomness;
 pub mod one_yocto_missing;
+pub mod privileged_setter;
+pub mod storage_griefing;
+pub mod unbounded_iteration;
 pub mod unchecked_promise_result;
 pub mod upgrade_path;
 
@@ -101,8 +107,8 @@ pub const CATALOG: &[RuleMeta] = &[
         title: "unbounded-iteration",
         severity: crate::finding::Severity::Medium,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
+        matcher: Some("unbounded_iteration"),
+        status: "shipped",
         refs: &["https://docs.near.org/"],
     },
     RuleMeta {
@@ -110,44 +116,44 @@ pub const CATALOG: &[RuleMeta] = &[
         title: "storage-griefing",
         severity: crate::finding::Severity::Medium,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://docs.near.org/"],
+        matcher: Some("storage_griefing"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/anatomy/optimizations"],
     },
     RuleMeta {
         id: "NS009",
         title: "insecure-randomness",
         severity: crate::finding::Severity::Medium,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://docs.near.org/"],
+        matcher: Some("insecure_randomness"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/security/random"],
     },
     RuleMeta {
         id: "NS010",
         title: "arbitrary-promise-target",
         severity: crate::finding::Severity::High,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://github.com/near/near-sdk-rs"],
+        matcher: Some("arbitrary_promise_target"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/anatomy/actions"],
     },
     RuleMeta {
         id: "NS011",
         title: "deposit-refund-missing",
         severity: crate::finding::Severity::Low,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://docs.near.org/"],
+        matcher: Some("deposit_refund_missing"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/anatomy/actions"],
     },
     RuleMeta {
         id: "NS012",
         title: "privileged-setter-unguarded",
         severity: crate::finding::Severity::Medium,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
+        matcher: Some("privileged_setter"),
+        status: "shipped",
         refs: &["https://docs.near.org/protocol/accounts-contracts/access-keys"],
     },
 ];
@@ -162,6 +168,12 @@ pub fn rules() -> &'static [&'static dyn Rule] {
         &unchecked_promise_result::UncheckedPromiseResult,
         &init_ignore_state::InitIgnoreState,
         &upgrade_path::UpgradePath,
+        &privileged_setter::PrivilegedSetter,
+        &unbounded_iteration::UnboundedIteration,
+        &storage_griefing::StorageGriefing,
+        &insecure_randomness::InsecureRandomness,
+        &arbitrary_promise_target::ArbitraryPromiseTarget,
+        &deposit_refund_missing::DepositRefundMissing,
     ]
 }
 
