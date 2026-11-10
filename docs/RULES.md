@@ -174,56 +174,62 @@ pub fn migrate() -> Self {
 ---
 
 ## NS007: unbounded-iteration
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+
+- **Status:** shipped · **Matcher:** `unbounded_iteration`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** gas, griefing
-- **Detects:** `for` loops over `Vec` or collection iterators in public methods where the collection can grow from user input, without pagination bounds.
+- **Detects:** `for` loops over `self`-rooted collection fields in public methods (direct, borrowed, or via `.iter()`/`.into_iter()`/`.keys()`/`.values()`/`.iter_from()`/`.drain()`) where the collection can grow from user input, without pagination bounds.
 - **Why it matters:** NEAR gas is finite per receipt. An unbounded loop that grows with users eventually makes the method uncallable, locking funds or governance actions.
-- **Detection:** loop scan; flag when the iterated collection is mutated by public methods elsewhere in the file or crate.
+- **Detection:** AST walk of `for` loops in public, non-`#[init]`, non-`#[private]` methods. v0.1 scope: the iterable must be rooted at `self` (`self.field`, `&self.field`, `self.field.iter()`, chains of such calls) so the reported loop is over state callers can grow; loops over function-local collections are not flagged. A bounded window (`.skip(offset).take(limit)`) removes the finding, as does manual `break` bounding.
+- **False positives:** a self-collection whose growth is capped by ingestion limits elsewhere; the message asks for pagination evidence before you dismiss it.
 - **Refs:** [NEAR docs](https://docs.near.org/)
 
 ---
 
 ## NS008: storage-griefing
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `storage_griefing`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** storage, griefing
-- **Detects:** collection `insert`/`set` on user-controlled input without an attached-deposit or storage check.
+- **Detects:** `insert`/`set`/`insert_id`/`insert_checked` calls rooted at `self` collections in public, non-`#[payable]` methods whose body never mentions `attached_deposit` or a storage-management check.
 - **Why it matters:** storage costs NEAR. A method that stores attacker-controlled data for free lets an attacker drain the contract's balance through storage stake.
-- **Detection:** insert/set call scan; check the enclosing function for `attached_deposit` or storage-cost checks.
+- **Detection:** AST scan for collection writes rooted at `self` (LookupMap, UnorderedMap, TreeMap, Vector, LookupSet method shapes) inside public methods. Exemptions: `#[private]` callbacks, `#[init]`, `#[payable]` (deposit accompanies every call), and bodies mentioning `attached_deposit`, `storage_usage`, `storage_min_balance`, `unregister`, `storage_byte_cost`, or `required_deposit` (token-based scan, macro groups included). Writes to function-local maps are never flagged: only persistent `self.` state is contract storage.
+- **False positives:** collections whose growth is self-funded by an internal accounting elsewhere; the message asks for the deposit path before you dismiss it.
 - **Refs:** [NEAR docs](https://docs.near.org/)
 
 ---
 
 ## NS009: insecure-randomness
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `insecure_randomness`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** randomness
-- **Detects:** entropy derived from `block_index`, `block_timestamp`, or `predecessor_account_id` (including hashes of those values).
+- **Detects:** entropy derived from `block_index` or `block_timestamp` inside a hash-shaped call (`sha256`, `keccak`, `hash*`) or a `%`-modulo selection.
 - **Why it matters:** block data is predictable or influenceable. Lotteries, NFT minting, and shuffles built on it are exploitable.
-- **Detection:** call scan for those APIs inside expressions that feed a hash or a selection index.
-- **Refs:** [NEAR docs](https://docs.near.org/)
+- **Detection:** value-flow-by-shape: the probe tracks whether expression context is "inside a hash call" or "inside a `%` expression"; a predictable call (`block_index`, `block_timestamp`) encountered there is the finding (reported at the call site). Timestamp comparisons for deadlines/bookkeeping pass. Commit-reveal (hashing a revealed secret) is the fixed shape and hashes of caller secrets pass.
+- **False positives:** modulo arithmetic on user-sized counters that never sees block data; hash uses where the hashed input is a secret, not environment data.
+- **Refs:** [NEAR randomness](https://docs.near.org/smart-contracts/security/random)
 
 ---
 
 ## NS010: arbitrary-promise-target
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `arbitrary_promise_target`
 - **Severity:** high · **Confidence:** heuristic · **Tags:** promises, access-control
-- **Detects:** `Promise::new(<non-literal>)` where the target is a function parameter or user input, without an allowlist check.
+- **Detects:** `Promise::new(<param>)` where the target is a method parameter (or a `let`-bound alias of one), without an allowlist check.
 - **Why it matters:** an attacker-controlled promise target lets a caller make the contract call arbitrary contracts, often combined with attached funds.
-- **Detection:** `Promise::new` argument analysis; literal account ids pass; parameters and deserialized inputs are flagged unless an allowlist pattern is present.
-- **Refs:** [near-sdk-rs](https://github.com/near/near-sdk-rs)
+- **Detection:** the walk collects `Promise::new` call sites (2-segment paths, macro shapes included) and checks the argument against the method's parameter names (plus `let`-bound aliases). Recognized release valves: a body mention of `allowlist`/`allowed`/`contains` (token scan, macro groups included) or a full owner guard (`body_has_guard`). Literal targets, `env::current_account_id()`, and state-derived fields pass because they are not parameters.
+- **False positives:** escrows and routers whose entire purpose is to pay caller-specified accounts with caller-supplied funds; NEP-141 `ft_transfer`-style methods that move only the earned balance: pair the flag with the authorization facts before you dismiss it.
+- **Refs:** [NEAR docs](https://docs.near.org/smart-contracts/anatomy/actions)
 
 ---
 
 ## NS011: deposit-refund-missing
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `deposit_refund_missing`
 - **Severity:** low · **Confidence:** heuristic · **Tags:** deposits, refunds
-- **Detects:** payable functions that can return early (via `assert!`/`require!` after deposit acceptance) without a refund path.
+- **Detects:** `#[payable]` functions whose body can abort (`assert!`/`require!`/`panic`/`expect` shapes) with no refund-shaped mention (`refund`, `transfer`, `attached_deposit`).
 - **Why it matters:** attached deposits can get stuck in the contract when a validation fails after the deposit is accepted. Users lose funds silently.
-- **Detection:** payable attribute plus early-return assertion scan; check for `Promise::new(predecessor).transfer(...)`.
-- **Refs:** [NEAR docs](https://docs.near.org/)
+- **Detection:** `#[payable]` gate, then an abort-shape probe (assert/require/panic macro tokens, `expect`/`panic` calls) and a refund-marker token scan (`refund`, `transfer`, `attached_deposit`) over the same body, macro groups included. A body without abort shapes cannot strand a deposit mid-flow and passes.
+- **False positives:** methods that intentionally keep the deposit on failure by design (e.g. registration fees); the message asks for the refund path or the documented intent.
+- **Refs:** [NEAR docs](https://docs.near.org/smart-contracts/anatomy/actions)
 
 ---
 

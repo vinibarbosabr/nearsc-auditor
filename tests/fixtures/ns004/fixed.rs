@@ -1,7 +1,10 @@
 use near_sdk::Promise;
 
+const CALL_TARGETS: [&str; 1] = ["example.near"];
+
 /// Fixed: both the success and the failure arm are handled explicitly.
-pub fn call(account: near_sdk::AccountId) -> Promise {
+pub fn call() -> Promise {
+    let account = CALL_TARGETS[0].to_string(); // allowlisted: NS004-only fixture
     Promise::new(account).then(Self::ext(account).on_payout())
 }
 

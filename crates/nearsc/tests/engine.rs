@@ -1,14 +1,19 @@
 use nearsc::engine;
 
-/// A small snippet that triggers NS002 (a `.then` callback without `#[private]`).
+/// A small snippet that triggers NS002 (a `.then` callback without
+/// `#[private]`). The promise target is state-like (a fixed literal) so the
+/// snippet exercises only NS002, not NS010.
 const NS002_VULN: &str = r#"
 use near_sdk::Promise;
 
 pub fn call(account: near_sdk::AccountId) -> Promise {
+    assert!(ALLOWED.contains(&account));
     Promise::new(account).then(on_result)
 }
 
 pub fn on_result() {}
+
+const ALLOWED: [&str; 1] = ["a.near"];
 "#;
 
 #[test]

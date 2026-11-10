@@ -52,13 +52,21 @@
 
 **Why:** one source of truth for the CLI findings, the MCP pattern lookup, and the docs. Contributors can improve metadata without touching the engine; matchers stay type-safe.
 
+**Scheduling note (2026-11-11, confirmed with the owner):** the TOML layer and the `include_dir` embedding land Thursday morning, immediately before the five MCP tools are built, and include moving `data/` and `rules/` under `crates/nearsc/` so the embedded paths resolve both from a git checkout and from a crates.io package. It cannot slip later: the crates.io publish (issue #10) requires the embedded data, and the MCP pattern tool is its first consumer.
+
 ## D-007: name nearsc
 
 **Decision:** repo `nearsc-auditor`, CLI and crate `nearsc`, MCP binary `nearsc-mcp`.
 
 **Why:** instant clarity for search and npm-style discovery ("near" + "audit"), short CLI, room for the `-auditor` repo name. The pitch line ("the Slither for NEAR") carries the story; the name does not need to.
 
-## D-008: MIT license, summarized third-party content
+## D-008: registry ships empty; seeds follow the audit KB
+
+**Context:** the registry maps NEAR contract accounts to audited code hashes. A hash is trivially verifiable on-chain; the "audited" claim is only honest when a public audit exists that we can link. A registry entry without that link would be invented trust, which the KB sourcing rules (verified-public, no unsourced claims) forbid. Which projects can honestly be claimed is therefore a function of how many sourced audit summaries the KB holds - the KB must expand before meaningful seeds exist.
+
+**Decision (2026-11-11):** Wednesday ships the RPC lookup (`nearsc contract <account_id>`), the `data/registry.json` schema, and the loader/matcher code path, with an empty registry. Registry seeding (3-5 entries) lands Friday morning, drafted from the expanded audit KB, in a dedicated KB session. The EOD gate `nearsc contract wrap.near` returns a code hash is satisfied by the RPC fetch alone (it is optional and outside the scan-path determinism contract).
+
+## D-009: MIT license, summarized third-party content
 
 **Decision:** MIT repo-wide. KB entries summarize and cite; verbatim copies only with a compatible license and attribution.
 
@@ -66,7 +74,7 @@
 
 ---
 
-## D-009: heuristic rules scope to explicit API use, not macro idioms
+## D-010: heuristic rules scope to explicit API use, not macro idioms
 
 **Context:** the original NS004 spec text said to flag "`#[callback]` usage where failure handling is expected". Every near-sdk `#[callback]`/`#[callback_vec]` deserialization unwraps internally and panics on failure by design, so the literal reading flags idiomatic, correct code.
 
@@ -75,3 +83,5 @@
 **Why:** a heuristic rule's value is signal per finding. Flagging by-design macro behavior trains users to ignore the tool, which is the worst outcome for a security scanner. Docs note the macro behavior instead (docs/RULES.md, NS004 "Amended scope").
 
 **Consequences:** callbacks that rely on `#[callback]`'s panic-on-failure are not findings; reviewers reading such code should ask whether a silent panic mid-flow is acceptable there. The amendment and its date are recorded in docs/RULES.md per rule.
+
+> **Numbering note (2026-11-11):** this page's D-numbers are this page's own edition of the decision log; the working log in the vault is longer and does not mirror these ids one-to-one. The scheduling records in D-006 (TOML + embedding land Thursday morning, before the MCP build) and D-008 (registry ships empty; seeding follows the audit KB) are the authoritative versions of those two decisions.

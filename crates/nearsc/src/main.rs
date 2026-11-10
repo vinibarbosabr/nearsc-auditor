@@ -25,7 +25,7 @@ enum Command {
         /// Directory or .rs file to scan
         path: PathBuf,
         /// Output format
-        #[arg(long, default_value = "text", value_parser = ["text", "json"])]
+        #[arg(long, default_value = "text", value_parser = ["text", "json", "sarif", "html"])]
         format: String,
         /// Exit with code 1 when a finding at or above this severity is present
         #[arg(long, value_enum)]
@@ -44,6 +44,18 @@ enum Command {
     Rules {
         #[command(subcommand)]
         command: RulesCommand,
+    },
+    /// Fetch a contract account's deployment info over public RPC and check
+    /// it against the audited-build registry
+    Contract {
+        /// NEAR account id, e.g. wrap.near
+        account_id: String,
+        /// Network to query (default mainnet)
+        #[arg(long, value_enum, default_value = "mainnet")]
+        network: NetworkArg,
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
     },
     /// Print the knowledge-base index as JSON (checked in as data/index.json)
     KbIndex,
@@ -72,6 +84,22 @@ enum SeverityArg {
     Medium,
     Low,
     Info,
+}
+
+/// Networks accepted by `contract --network`.
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum NetworkArg {
+    Mainnet,
+    Testnet,
+}
+
+impl From<NetworkArg> for nearsc::rpc::Network {
+    fn from(value: NetworkArg) -> Self {
+        match value {
+            NetworkArg::Mainnet => nearsc::rpc::Network::Mainnet,
+            NetworkArg::Testnet => nearsc::rpc::Network::Testnet,
+        }
+    }
 }
 
 impl From<SeverityArg> for Severity {
@@ -202,6 +230,43 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             println!("{}", serde_json::to_string_pretty(&index)?);
             Ok(0)
         }
+        Command::Contract {
+            account_id,
+            network,
+            json,
+        } => {
+            let info = nearsc::rpc::fetch_contract_info(&account_id, network.into())
+                .map_err(|err| anyhow::anyhow!("contract lookup failed: {err:#}"))?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&info)?);
+            } else {
+                println!("account:        {}", info.account_id);
+                println!("network:        {}", info.network);
+                println!("exists:         {}", info.exists);
+                println!("has code:       {}", info.has_code);
+                match &info.code_hash {
+                    Some(hash) => println!("code hash:      {hash}"),
+                    None => println!("code hash:      (none)"),
+                }
+                if let Some(balance) = &info.balance_yocto {
+                    println!("balance yocto:  {balance}");
+                }
+                if let Some(storage) = &info.storage_usage {
+                    println!("storage usage:  {storage}");
+                }
+                match info.registry_match {
+                    Some(true) => println!("registry:       MATCH (audited code hash)"),
+                    Some(false) => {
+                        println!("registry:       deployed code differs from the audited build")
+                    }
+                    None => println!("registry:       account not in the audited registry"),
+                }
+                for audit in &info.known_audits {
+                    println!("audit:          {} ({})", audit.title, audit.source);
+                }
+            }
+            Ok(0)
+        }
     }
 }
 
@@ -210,7 +275,8 @@ fn write_report(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
         .map_err(|err| anyhow::anyhow!("cannot write {}: {err}", path.display()))
 }
 
-/// Render a finished scan (json or text), then apply the `--fail-on` gate.
+/// Render a finished scan (json, sarif, or text), then apply the `--fail-on`
+/// gate.
 fn render_and_gate(
     mut result: engine::ScanResult,
     format: String,
@@ -223,19 +289,20 @@ fn render_and_gate(
         result.findings.retain(|finding| finding.severity <= min);
         result.summary.recount(&result.findings);
     }
-    if format == "json" {
-        let rendered = serde_json::to_string_pretty(&result)?;
-        match &output {
-            Some(file) => write_report(file, &rendered)?,
-            None => println!("{rendered}"),
+    let rendered: anyhow::Result<String> = match format.as_str() {
+        "json" => nearsc::report::render_json(&result),
+        "sarif" => nearsc::report::render_sarif(&result),
+        "html" => nearsc::report::render_html(&result),
+        _ => {
+            let mut rendered = String::new();
+            nearsc::report::render_text(&mut rendered, &result);
+            Ok(rendered.trim_end().to_string())
         }
-    } else {
-        let mut rendered = String::new();
-        print_text(&mut rendered, &result);
-        match &output {
-            Some(file) => write_report(file, rendered.trim_end())?,
-            None => print!("{rendered}"),
-        }
+    };
+    let rendered = rendered?;
+    match &output {
+        Some(file) => write_report(file, &rendered)?,
+        None => println!("{rendered}"),
     }
 
     let gated = fail_on.is_some_and(|threshold| {
@@ -246,33 +313,4 @@ fn render_and_gate(
             .any(|finding| finding.severity <= threshold)
     });
     Ok(if gated { 1 } else { 0 })
-}
-
-fn print_text(out: &mut String, result: &engine::ScanResult) {
-    use std::fmt::Write;
-    for finding in &result.findings {
-        let _ = writeln!(
-            out,
-            "{:<8} {} {}:{} {}",
-            finding.severity.as_str().to_uppercase(),
-            finding.rule_id,
-            finding.file,
-            finding.line,
-            finding.message
-        );
-    }
-    for error in &result.parse_errors {
-        let _ = writeln!(out, "parse-error {}: {}", error.file, error.message);
-    }
-    let summary = &result.summary;
-    let _ = writeln!(
-        out,
-        "{} findings (critical {}, high {}, medium {}, low {}, info {})",
-        result.findings.len(),
-        summary.critical,
-        summary.high,
-        summary.medium,
-        summary.low,
-        summary.info
-    );
 }
