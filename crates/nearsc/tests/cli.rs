@@ -13,6 +13,10 @@ fn nearsc() -> Command {
     Command::cargo_bin("nearsc").expect("nearsc binary")
 }
 
+fn example() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/vulnerable-contract")
+}
+
 #[test]
 fn scan_missing_path_fails_loudly() {
     nearsc()
@@ -108,10 +112,6 @@ fn fail_on_applies_after_min_severity_filter() {
         .code(1);
 }
 
-fn example() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/vulnerable-contract")
-}
-
 #[test]
 fn output_writes_file_and_keeps_stdout_empty() {
     let dir = tempfile::tempdir().expect("tempdir");
@@ -154,6 +154,48 @@ fn rules_list_prints_the_full_catalog() {
         .stdout(contains("NS001"))
         .stdout(contains("NS012"))
         .stdout(contains("planned Wed 2026-11-11"));
+}
+
+#[test]
+fn rules_list_json_prints_the_catalog() {
+    nearsc()
+        .args(["rules", "list", "--format", "json"])
+        .assert()
+        .code(0)
+        .stdout(contains("\"id\": \"NS001\""))
+        .stdout(contains("\"status\": \"shipped\""));
+}
+
+#[test]
+fn scan_only_runs_exactly_the_requested_rule() {
+    // The ns001 fixture triggers NS001; running with --only ns002 emits nothing.
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns001/vuln.rs"))
+        .args(["--only", "ns002"])
+        .assert()
+        .code(0)
+        .stdout(contains("0 findings"))
+        .stdout(contains("NS001").not());
+    // Running with --only ns001 emits exactly NS001.
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns001/vuln.rs"))
+        .args(["--only", "ns001"])
+        .assert()
+        .code(0)
+        .stdout(contains("NS001"));
+}
+
+#[test]
+fn scan_only_unknown_id_exits_2() {
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns002/vuln.rs"))
+        .args(["--only", "NOPE"])
+        .assert()
+        .code(2)
+        .stderr(contains("unknown rule id"));
 }
 
 #[test]

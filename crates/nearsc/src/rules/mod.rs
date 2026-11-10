@@ -24,6 +24,7 @@ pub trait Rule {
 }
 
 /// Static catalog entry for the v0.1 rule set.
+#[derive(serde::Serialize)]
 pub struct RuleMeta {
     pub id: &'static str,
     pub title: &'static str,
@@ -153,7 +154,7 @@ pub const CATALOG: &[RuleMeta] = &[
 
 /// Every registered rule, in catalog order. `run_all` and the parity test
 /// both consume this slice; there is no parallel id list to drift.
-fn rules() -> &'static [&'static dyn Rule] {
+pub fn rules() -> &'static [&'static dyn Rule] {
     &[
         &one_yocto_missing::OneYoctoMissing,
         &callback_not_private::CallbackNotPrivate,

@@ -33,6 +33,9 @@ enum Command {
         /// Only report findings at or above this severity
         #[arg(long, value_enum)]
         min_severity: Option<SeverityArg>,
+        /// Comma-separated rule ids to run (e.g. ns004,ns010); default runs all
+        #[arg(long)]
+        only: Option<String>,
         /// Write the report to this file instead of stdout
         #[arg(long)]
         output: Option<PathBuf>,
@@ -49,7 +52,11 @@ enum Command {
 #[derive(Subcommand)]
 enum RulesCommand {
     /// List all v0.1 rules with their status
-    List,
+    List {
+        /// Output format
+        #[arg(long, default_value = "text", value_parser = ["text", "json"])]
+        format: String,
+    },
     /// Show one rule's catalog entry
     Show {
         /// Rule id, e.g. NS002
@@ -79,6 +86,19 @@ impl From<SeverityArg> for Severity {
     }
 }
 
+/// Parse `--only ns004,ns010` into individual ids, lowercased for matching.
+fn parse_only_ids(value: &str) -> Result<Vec<String>, String> {
+    let ids: Vec<String> = value
+        .split(',')
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(|id| id.to_ascii_lowercase())
+        .collect();
+    if ids.is_empty() {
+        return Err("empty --only list".to_string());
+    }
+    Ok(ids)
+}
 fn main() -> ExitCode {
     match run(Cli::parse()) {
         Ok(code) => ExitCode::from(code),
@@ -96,6 +116,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             format,
             fail_on,
             min_severity,
+            only,
             output,
         } => {
             if !path.exists() {
@@ -107,47 +128,43 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 })?;
             }
 
-            let mut result = engine::scan_path(&path);
-            if let Some(min) = min_severity {
-                let min = Severity::from(min);
-                result.findings.retain(|finding| finding.severity <= min);
-                result.summary.recount(&result.findings);
-            }
-            if format == "json" {
-                let rendered = serde_json::to_string_pretty(&result)?;
-                match &output {
-                    Some(file) => write_report(file, &rendered)?,
-                    None => println!("{rendered}"),
+            if let Some(only) = only.as_deref() {
+                let requested = parse_only_ids(only).map_err(anyhow::Error::msg)?;
+                let catalog_ids: Vec<&str> = CATALOG.iter().map(|entry| entry.id).collect();
+                for id in &requested {
+                    if !catalog_ids
+                        .iter()
+                        .any(|catalog_id| catalog_id.eq_ignore_ascii_case(id))
+                    {
+                        anyhow::bail!(
+                            "unknown rule id: {}; valid ids: {}",
+                            id,
+                            catalog_ids.join(", ")
+                        );
+                    }
                 }
-            } else {
-                let mut rendered = String::new();
-                print_text(&mut rendered, &result);
-                match &output {
-                    Some(file) => write_report(file, rendered.trim_end())?,
-                    None => print!("{rendered}"),
-                }
+                let result = engine::scan_path_only(&path, &requested);
+                return render_and_gate(result, format, fail_on, min_severity, output);
             }
 
-            let gated = fail_on.is_some_and(|threshold| {
-                let threshold = Severity::from(threshold);
-                result
-                    .findings
-                    .iter()
-                    .any(|finding| finding.severity <= threshold)
-            });
-            Ok(if gated { 1 } else { 0 })
+            let result = engine::scan_path(&path);
+            render_and_gate(result, format, fail_on, min_severity, output)
         }
         Command::Rules { command } => match command {
-            RulesCommand::List => {
-                for entry in CATALOG {
-                    println!(
-                        "{:<8} {:<8} {:<9} {:<18} {}",
-                        entry.id,
-                        entry.severity.as_str(),
-                        entry.confidence.as_str(),
-                        entry.status,
-                        entry.title
-                    );
+            RulesCommand::List { format } => {
+                if format == "json" {
+                    println!("{}", serde_json::to_string_pretty(&CATALOG)?);
+                } else {
+                    for entry in CATALOG {
+                        println!(
+                            "{:<8} {:<8} {:<9} {:<18} {}",
+                            entry.id,
+                            entry.severity.as_str(),
+                            entry.confidence.as_str(),
+                            entry.status,
+                            entry.title
+                        );
+                    }
                 }
                 Ok(0)
             }
@@ -191,6 +208,44 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
 fn write_report(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
     std::fs::write(path, content)
         .map_err(|err| anyhow::anyhow!("cannot write {}: {err}", path.display()))
+}
+
+/// Render a finished scan (json or text), then apply the `--fail-on` gate.
+fn render_and_gate(
+    mut result: engine::ScanResult,
+    format: String,
+    fail_on: Option<SeverityArg>,
+    min_severity: Option<SeverityArg>,
+    output: Option<PathBuf>,
+) -> anyhow::Result<u8> {
+    if let Some(min) = min_severity {
+        let min = Severity::from(min);
+        result.findings.retain(|finding| finding.severity <= min);
+        result.summary.recount(&result.findings);
+    }
+    if format == "json" {
+        let rendered = serde_json::to_string_pretty(&result)?;
+        match &output {
+            Some(file) => write_report(file, &rendered)?,
+            None => println!("{rendered}"),
+        }
+    } else {
+        let mut rendered = String::new();
+        print_text(&mut rendered, &result);
+        match &output {
+            Some(file) => write_report(file, rendered.trim_end())?,
+            None => print!("{rendered}"),
+        }
+    }
+
+    let gated = fail_on.is_some_and(|threshold| {
+        let threshold = Severity::from(threshold);
+        result
+            .findings
+            .iter()
+            .any(|finding| finding.severity <= threshold)
+    });
+    Ok(if gated { 1 } else { 0 })
 }
 
 fn print_text(out: &mut String, result: &engine::ScanResult) {
