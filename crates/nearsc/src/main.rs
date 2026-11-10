@@ -25,7 +25,7 @@ enum Command {
         /// Directory or .rs file to scan
         path: PathBuf,
         /// Output format
-        #[arg(long, default_value = "text", value_parser = ["text", "json"])]
+        #[arg(long, default_value = "text", value_parser = ["text", "json", "sarif"])]
         format: String,
         /// Exit with code 1 when a finding at or above this severity is present
         #[arg(long, value_enum)]
@@ -210,7 +210,8 @@ fn write_report(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
         .map_err(|err| anyhow::anyhow!("cannot write {}: {err}", path.display()))
 }
 
-/// Render a finished scan (json or text), then apply the `--fail-on` gate.
+/// Render a finished scan (json, sarif, or text), then apply the `--fail-on`
+/// gate.
 fn render_and_gate(
     mut result: engine::ScanResult,
     format: String,
@@ -223,19 +224,19 @@ fn render_and_gate(
         result.findings.retain(|finding| finding.severity <= min);
         result.summary.recount(&result.findings);
     }
-    if format == "json" {
-        let rendered = serde_json::to_string_pretty(&result)?;
-        match &output {
-            Some(file) => write_report(file, &rendered)?,
-            None => println!("{rendered}"),
+    let rendered: anyhow::Result<String> = match format.as_str() {
+        "json" => nearsc::report::render_json(&result),
+        "sarif" => nearsc::report::render_sarif(&result),
+        _ => {
+            let mut rendered = String::new();
+            nearsc::report::render_text(&mut rendered, &result);
+            Ok(rendered.trim_end().to_string())
         }
-    } else {
-        let mut rendered = String::new();
-        print_text(&mut rendered, &result);
-        match &output {
-            Some(file) => write_report(file, rendered.trim_end())?,
-            None => print!("{rendered}"),
-        }
+    };
+    let rendered = rendered?;
+    match &output {
+        Some(file) => write_report(file, &rendered)?,
+        None => println!("{rendered}"),
     }
 
     let gated = fail_on.is_some_and(|threshold| {
@@ -246,33 +247,4 @@ fn render_and_gate(
             .any(|finding| finding.severity <= threshold)
     });
     Ok(if gated { 1 } else { 0 })
-}
-
-fn print_text(out: &mut String, result: &engine::ScanResult) {
-    use std::fmt::Write;
-    for finding in &result.findings {
-        let _ = writeln!(
-            out,
-            "{:<8} {} {}:{} {}",
-            finding.severity.as_str().to_uppercase(),
-            finding.rule_id,
-            finding.file,
-            finding.line,
-            finding.message
-        );
-    }
-    for error in &result.parse_errors {
-        let _ = writeln!(out, "parse-error {}: {}", error.file, error.message);
-    }
-    let summary = &result.summary;
-    let _ = writeln!(
-        out,
-        "{} findings (critical {}, high {}, medium {}, low {}, info {})",
-        result.findings.len(),
-        summary.critical,
-        summary.high,
-        summary.medium,
-        summary.low,
-        summary.info
-    );
 }

@@ -7,4 +7,5 @@
 pub mod engine;
 pub mod finding;
 pub mod kb;
+pub mod report;
 pub mod rules;
