@@ -85,6 +85,15 @@ impl VulnerableVault {
         });
     }
 
+    /// NS007 seed: unbounded loop over a user-growable collection.
+    pub fn total_pending(&self) -> u128 {
+        let mut total = 0;
+        for amount in self.pending_withdrawals.iter() {
+            total += amount;
+        }
+        total
+    }
+
     pub fn notify_receiver(&self, receiver_id: AccountId, amount: u128) {
         Promise::new(receiver_id)
             .function_call(
