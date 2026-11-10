@@ -45,6 +45,18 @@ enum Command {
         #[command(subcommand)]
         command: RulesCommand,
     },
+    /// Fetch a contract account's deployment info over public RPC and check
+    /// it against the audited-build registry
+    Contract {
+        /// NEAR account id, e.g. wrap.near
+        account_id: String,
+        /// Network to query (default mainnet)
+        #[arg(long, value_enum, default_value = "mainnet")]
+        network: NetworkArg,
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// Print the knowledge-base index as JSON (checked in as data/index.json)
     KbIndex,
 }
@@ -72,6 +84,22 @@ enum SeverityArg {
     Medium,
     Low,
     Info,
+}
+
+/// Networks accepted by `contract --network`.
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum NetworkArg {
+    Mainnet,
+    Testnet,
+}
+
+impl From<NetworkArg> for nearsc::rpc::Network {
+    fn from(value: NetworkArg) -> Self {
+        match value {
+            NetworkArg::Mainnet => nearsc::rpc::Network::Mainnet,
+            NetworkArg::Testnet => nearsc::rpc::Network::Testnet,
+        }
+    }
 }
 
 impl From<SeverityArg> for Severity {
@@ -200,6 +228,43 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Command::KbIndex => {
             let index = nearsc::kb::build_index(&nearsc::kb::repo_data_dir())?;
             println!("{}", serde_json::to_string_pretty(&index)?);
+            Ok(0)
+        }
+        Command::Contract {
+            account_id,
+            network,
+            json,
+        } => {
+            let info = nearsc::rpc::fetch_contract_info(&account_id, network.into())
+                .map_err(|err| anyhow::anyhow!("contract lookup failed: {err:#}"))?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&info)?);
+            } else {
+                println!("account:        {}", info.account_id);
+                println!("network:        {}", info.network);
+                println!("exists:         {}", info.exists);
+                println!("has code:       {}", info.has_code);
+                match &info.code_hash {
+                    Some(hash) => println!("code hash:      {hash}"),
+                    None => println!("code hash:      (none)"),
+                }
+                if let Some(balance) = &info.balance_yocto {
+                    println!("balance yocto:  {balance}");
+                }
+                if let Some(storage) = &info.storage_usage {
+                    println!("storage usage:  {storage}");
+                }
+                match info.registry_match {
+                    Some(true) => println!("registry:       MATCH (audited code hash)"),
+                    Some(false) => {
+                        println!("registry:       deployed code differs from the audited build")
+                    }
+                    None => println!("registry:       account not in the audited registry"),
+                }
+                for audit in &info.known_audits {
+                    println!("audit:          {} ({})", audit.title, audit.source);
+                }
+            }
             Ok(0)
         }
     }
