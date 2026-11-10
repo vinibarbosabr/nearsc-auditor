@@ -10,7 +10,7 @@ Machine-readable metadata lives in `rules/<ID>.toml` (**planned, lands with the 
 
 ## NS001: one-yocto-missing-on-transfer
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `one_yocto_missing`
 - **Severity:** high · **Confidence:** spec · **Tags:** nep-141, nep-171, authorization
 - **Detects:** implementations of `ft_transfer`, `ft_transfer_call`, `nft_transfer`, `nft_transfer_call` that do not enforce a 1-yoctoNEAR attached deposit (`assert_one_yocto()` or an equivalent check).
 - **Why it matters:** the NEP-141/171 transfer methods are specified to require exactly 1 yoctoNEAR so the call must be authorized with a full-access key. A function-call access key cannot attach a deposit, so the check prevents key-scoped abuse. Omitting it is a spec violation and a real authorization gap.

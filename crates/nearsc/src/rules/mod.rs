@@ -5,6 +5,7 @@
 //! registry here is the source of truth for what actually runs.
 
 pub mod callback_not_private;
+pub mod one_yocto_missing;
 
 use syn::visit::Visit;
 use syn::{Attribute, Expr};
@@ -20,7 +21,10 @@ pub trait Rule {
 
 /// Run every registered rule against one file.
 pub fn run_all(context: &FileContext) -> Vec<Finding> {
-    let rules: &[&dyn Rule] = &[&callback_not_private::CallbackNotPrivate];
+    let rules: &[&dyn Rule] = &[
+        &one_yocto_missing::OneYoctoMissing,
+        &callback_not_private::CallbackNotPrivate,
+    ];
     rules.iter().flat_map(|rule| rule.check(context)).collect()
 }
 
