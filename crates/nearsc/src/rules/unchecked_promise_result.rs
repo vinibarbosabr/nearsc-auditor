@@ -6,7 +6,6 @@
 //! `#[callback*]` deserialization is not flagged: the near-sdk macro unwraps
 //! and panics by design, which is documented semantics.
 
-use syn::spanned::Spanned;
 use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
