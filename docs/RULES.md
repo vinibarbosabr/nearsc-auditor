@@ -223,12 +223,13 @@ pub fn migrate() -> Self {
 
 ## NS011: deposit-refund-missing
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `deposit_refund_missing`
 - **Severity:** low · **Confidence:** heuristic · **Tags:** deposits, refunds
-- **Detects:** payable functions that can return early (via `assert!`/`require!` after deposit acceptance) without a refund path.
+- **Detects:** `#[payable]` functions whose body can abort (`assert!`/`require!`/`panic`/`expect` shapes) with no refund-shaped mention (`refund`, `transfer`, `attached_deposit`).
 - **Why it matters:** attached deposits can get stuck in the contract when a validation fails after the deposit is accepted. Users lose funds silently.
-- **Detection:** payable attribute plus early-return assertion scan; check for `Promise::new(predecessor).transfer(...)`.
-- **Refs:** [NEAR docs](https://docs.near.org/)
+- **Detection:** `#[payable]` gate, then an abort-shape probe (assert/require/panic macro tokens, `expect`/`panic` calls) and a refund-marker token scan (`refund`, `transfer`, `attached_deposit`) over the same body, macro groups included. A body without abort shapes cannot strand a deposit mid-flow and passes.
+- **False positives:** methods that intentionally keep the deposit on failure by design (e.g. registration fees); the message asks for the refund path or the documented intent.
+- **Refs:** [NEAR docs](https://docs.near.org/smart-contracts/anatomy/actions)
 
 ---
 

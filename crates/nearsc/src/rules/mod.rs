@@ -7,6 +7,7 @@
 pub mod arbitrary_promise_target;
 pub mod callback_not_private;
 pub mod callback_panic;
+pub mod deposit_refund_missing;
 pub mod init_ignore_state;
 pub mod insecure_randomness;
 pub mod one_yocto_missing;
@@ -142,9 +143,9 @@ pub const CATALOG: &[RuleMeta] = &[
         title: "deposit-refund-missing",
         severity: crate::finding::Severity::Low,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://docs.near.org/"],
+        matcher: Some("deposit_refund_missing"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/anatomy/actions"],
     },
     RuleMeta {
         id: "NS012",
@@ -172,6 +173,7 @@ pub fn rules() -> &'static [&'static dyn Rule] {
         &storage_griefing::StorageGriefing,
         &insecure_randomness::InsecureRandomness,
         &arbitrary_promise_target::ArbitraryPromiseTarget,
+        &deposit_refund_missing::DepositRefundMissing,
     ]
 }
 

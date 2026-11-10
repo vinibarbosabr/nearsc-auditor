@@ -22,7 +22,7 @@ fn example_contract_emits_exactly_the_seeded_rules() {
         ids,
         vec![
             "NS001", "NS002", "NS003", "NS004", "NS005", "NS006", "NS007", "NS008", "NS009",
-            "NS010", "NS012",
+            "NS010", "NS011", "NS012",
         ],
         "example contract seeds drifted: {ids:?}"
     );

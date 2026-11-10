@@ -127,6 +127,16 @@ impl VulnerableVault {
         });
     }
 
+    /// NS011 seed: payable claim with a late assert and no refund path.
+    #[payable]
+    pub fn claim(&mut self, reward: u128) {
+        assert!(
+            reward <= 1_000_000,
+            "reward above the per-claim cap"
+        );
+        self.pending_withdrawals.push(reward);
+    }
+
     /// NS009 seed: lottery index derived from predictable block data.
     pub fn draw_winner(&self) -> AccountId {
         let index =
