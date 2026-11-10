@@ -12,7 +12,7 @@ nearsc v0.1 will ship three things, all deterministic and offline:
 
 Built at NEAR HACKATHON 2026, tracks: security, agents, open.
 
-**Status: scaffold.** There is no installable release yet. The final README, with verified commands and real output, lands with the `v0.1.0` release on Nov 14.
+**Status: scaffold.** The scanner engine now ships 6 rules (NS001-NS006, see docs/RULES.md); run them locally with `cargo run -p nearsc -- scan examples/vulnerable-contract`. There is no installable release yet. The final README, with verified commands and real output, lands with the `v0.1.0` release on Nov 14.
 
 ## Repository layout
 

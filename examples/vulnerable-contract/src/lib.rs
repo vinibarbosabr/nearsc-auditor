@@ -10,6 +10,7 @@ use near_sdk::{env, near, AccountId, Gas, NearToken, Promise};
 pub struct VulnerableVault {
     owner: AccountId,
     balances: LookupMap<AccountId, u128>,
+    pending_withdrawals: Vec<u128>,
 }
 
 #[near]
@@ -19,6 +20,7 @@ impl VulnerableVault {
         Self {
             owner,
             balances: LookupMap::new(b"b"),
+            pending_withdrawals: Vec::new(),
         }
     }
 
@@ -49,6 +51,40 @@ impl VulnerableVault {
         env::log_str(&format!("deposit complete: {amount}"));
     }
 
+    /// NS003 seed: private callback with a panic-capable unwrap, invoked from
+    /// `withdraw` below.
+    #[private]
+    pub fn on_withdraw_result(&mut self) {
+        let amount = self.pending_withdrawals.pop().unwrap();
+        self.balances.insert(&env::predecessor_account_id(), &amount);
+    }
+
+    pub fn withdraw(&self, receiver_id: AccountId, amount: u128) {
+        Promise::new(receiver_id).then(
+            Self::ext(env::current_account_id())
+                .with_static_gas(Gas::from_tgas(25))
+                .on_withdraw_result(),
+        );
+    }
+
+    /// NS004 seed: promise result consumed without a Failed arm.
+    #[private]
+    pub fn on_deposit_result(&mut self) {
+        if let PromiseResult::Successful(data) = env::promise_result(0) {
+            let amount: u128 = serde_json::from_slice(&data).unwrap_or(0);
+            self.balances.insert(&env::current_account_id(), &amount);
+        }
+    }
+
+    /// NS006 seed: state write reachable without a guard.
+    pub fn set_state(&mut self, owner: AccountId) {
+        env::state_write(&Self {
+            owner,
+            balances: LookupMap::new(b"b"),
+            pending_withdrawals: Vec::new(),
+        });
+    }
+
     pub fn notify_receiver(&self, receiver_id: AccountId, amount: u128) {
         Promise::new(receiver_id)
             .function_call(
@@ -70,6 +106,7 @@ impl VulnerableVault {
         Self {
             owner: env::predecessor_account_id(),
             balances: LookupMap::new(b"b"),
+            pending_withdrawals: Vec::new(),
         }
     }
 }

@@ -1,6 +1,6 @@
 # Rules
 
-> **Status:** specification for v0.1 (2026-11-10). Rule ids, severities, and detection notes are final unless the build proves a rule infeasible. Per-rule status is labeled in each section: only NS002 has a shipped matcher today. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle.
+> **Status:** specification for v0.1 (2026-11-10). Rule ids, severities, and detection notes are final unless the build proves a rule infeasible. Per-rule status is labeled in each section: NS001-NS006 have shipped matchers today. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary (`--help` for filters).
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
 
@@ -10,7 +10,7 @@ Machine-readable metadata lives in `rules/<ID>.toml` (**planned, lands with the 
 
 ## NS001: one-yocto-missing-on-transfer
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `one_yocto_missing`
 - **Severity:** high · **Confidence:** spec · **Tags:** nep-141, nep-171, authorization
 - **Detects:** implementations of `ft_transfer`, `ft_transfer_call`, `nft_transfer`, `nft_transfer_call` that do not enforce a 1-yoctoNEAR attached deposit (`assert_one_yocto()` or an equivalent check).
 - **Why it matters:** the NEP-141/171 transfer methods are specified to require exactly 1 yoctoNEAR so the call must be authorized with a full-access key. A function-call access key cannot attach a deposit, so the check prevents key-scoped abuse. Omitting it is a spec violation and a real authorization gap.
@@ -31,7 +31,7 @@ pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option
 }
 ```
 
-- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls.
+- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls. **Recognized guards:** `assert_one_yocto` (call or macro), an `attached_deposit` comparison against the literal `1` or a `from_yoctonear(1)`-style call, or a same-file helper that performs one of those.
 - **Refs:** [NEP-141 core](https://nomicon.io/Standards/Tokens/FungibleToken/Core), [NEP-171 core](https://nomicon.io/Standards/Tokens/NonFungibleToken/Core), [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)
 
 ---
@@ -66,7 +66,7 @@ pub fn on_withdraw(&mut self, amount: U128) {
 
 ## NS003: callback-panic-risk
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `callback_panic`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** async, callbacks, robustness
 - **Detects:** `unwrap()`, `expect()`, `panic!`, or unchecked slice indexing inside `#[private]` callback functions.
 - **Why it matters:** a panic in a callback aborts the receipt. Funds and state can be left in a half-updated condition, and retries are not automatic. Callbacks should handle failure explicitly and stay panic-free.
@@ -99,11 +99,12 @@ pub fn on_swap(&mut self) {
 
 ## NS004: unchecked-promise-result
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `unchecked_promise_result`
 - **Severity:** high · **Confidence:** heuristic · **Tags:** async, promises
-- **Detects:** callback code that consumes a promise result without matching `PromiseResult::Failed`, including `#[callback]` usage where failure handling is expected.
+- **Detects:** functions that consume a promise result (call `env::promise_result` or name `PromiseResult`) without a `PromiseResult::Failed` match or `if let ... Failed` arm.
+- **Amended scope (2026-11-10):** `#[callback*]`-deserialized parameters are **not** flagged. The near-sdk macros unwrap and panic on failure by design; that is documented semantics, not a finding, and flagging it would mark idiomatic code. Review callbacks that rely on the macro behavior where a silent failure corrupts state.
 - **Why it matters:** cross-contract calls fail. Code that assumes success updates state on a lie; code that panics on failure can brick flows. Both are common and both are detectable.
-- **Detection:** callback bodies that call `env::promise_result` / use `#[callback]` without a `match`/`if let` on `PromiseResult::Failed`.
+- **Detection:** functions whose bodies call `env::promise_result` or mention `PromiseResult` without a `Failed` arm in a `match` or `if let`.
 
 ```rust
 #[private]
@@ -132,7 +133,7 @@ pub fn on_payout(&mut self) {
 
 ## NS005: init-ignore-state-unguarded
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `init_ignore_state`
 - **Severity:** critical · **Confidence:** heuristic · **Tags:** init, migrate, access-control
 - **Detects:** `#[init(ignore_state)]` functions or migrate-style functions that do not assert the predecessor is the owner or the contract itself.
 - **Why it matters:** `#[init(ignore_state)]` skips the "state must not exist" check. A public migrate method without access control lets any account overwrite contract state.
@@ -163,17 +164,16 @@ pub fn migrate() -> Self {
 
 ## NS006: upgrade-path-unguarded
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `upgrade_path`
 - **Severity:** critical · **Confidence:** heuristic · **Tags:** upgrade, access-control
 - **Detects:** direct `state_write` / `env::state_write` calls, or migrate deserialization patterns, reachable from a public method without an owner or self check.
 - **Why it matters:** state writes bypass the normal storage model and are the last step of an upgrade. If an attacker can reach one, they own the contract.
-- **Detection:** call-site scan for state write APIs; walk up to the enclosing public function; check for predecessor/owner assertions.
+- **Detection:** call-site scan for state write APIs; walk up to the enclosing public function; check for predecessor/owner assertions. **v0.1 scope:** direct `state_write` call sites in unguarded functions only; migrate-deserialization reachability lands with dataflow analysis in v0.2.
 - **Refs:** [near-sdk-rs](https://github.com/near/near-sdk-rs)
 
 ---
 
 ## NS007: unbounded-iteration
-
 - **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** gas, griefing
 - **Detects:** `for` loops over `Vec` or collection iterators in public methods where the collection can grow from user input, without pagination bounds.
