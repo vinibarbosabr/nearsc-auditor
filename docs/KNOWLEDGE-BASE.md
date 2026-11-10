@@ -105,6 +105,8 @@ The index is built by a small script and checked in, so the binary and CI are de
 - Postmortems: the NEAR Intents deposit-notification exploit (adjusted for public release, public sources only).
 - Registry: 3–5 well-known contracts with verified code hashes.
 
+**Registry footing decision (2026-11-11, with the owner):** `data/registry.json` ships v0.1 as an empty-looking-but-valid placeholder `{}` while the audit-KB expansion adds more sourced project reports. Entries get seeded only where a public audit can back them; seeding is scheduled with the KB expansion pass. The RPC lookup (`nearsc contract`) and the `nearsc_contract_info` tool work regardless and report unregistered accounts as such.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). A KB entry without a source and a confidence label is not accepted.
