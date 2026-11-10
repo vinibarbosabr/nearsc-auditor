@@ -22,33 +22,6 @@ impl Severity {
     }
 }
 
-impl crate::engine::Summary {
-    /// Recount from a (possibly filtered) findings list so the summary always
-    /// matches what is reported.
-    pub fn recount(&mut self, findings: &[crate::finding::Finding]) {
-        self.critical = findings
-            .iter()
-            .filter(|f| f.severity == Severity::Critical)
-            .count();
-        self.high = findings
-            .iter()
-            .filter(|f| f.severity == Severity::High)
-            .count();
-        self.medium = findings
-            .iter()
-            .filter(|f| f.severity == Severity::Medium)
-            .count();
-        self.low = findings
-            .iter()
-            .filter(|f| f.severity == Severity::Low)
-            .count();
-        self.info = findings
-            .iter()
-            .filter(|f| f.severity == Severity::Info)
-            .count();
-    }
-}
-
 /// How the rule reaches its verdict.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
