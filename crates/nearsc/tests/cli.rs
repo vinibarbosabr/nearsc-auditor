@@ -91,25 +91,40 @@ fn min_severity_at_threshold_keeps_findings() {
         .stdout(contains("NS002"));
 }
 
+/// The example contract keeps high findings at --min-severity medium,
+/// so --fail-on high still trips exit 1.
 #[test]
-fn fail_on_applies_after_min_severity_filter() {
-    // The example contract has high findings (NS001/NS002/NS004). Filtering at
-    // medium keeps them, so --fail-on high must still trip exit 1.
+fn fail_on_trips_after_min_severity_filter_keeps_highs() {
     nearsc()
         .arg("scan")
         .arg(example())
         .args(["--min-severity", "medium", "--fail-on", "high"])
         .assert()
         .code(1);
-    // Filtering at critical keeps only criticals; there are none above high in
-    // the medium+ range after filtering... the criticals NS005/NS006 remain, so
-    // the gate still trips. Filter to nothing instead: no rule emits only low.
+}
+
+/// Criticals survive a medium filter too, so a critical gate still trips.
+#[test]
+fn fail_on_trips_on_criticals_kept_by_filter() {
     nearsc()
         .arg("scan")
         .arg(example())
-        .args(["--min-severity", "low", "--fail-on", "high"])
+        .args(["--min-severity", "low", "--fail-on", "critical"])
         .assert()
         .code(1);
+}
+
+/// Filtering away the only finding disarms the gate: exit 0.
+/// The ns002 fixture's single high finding is removed by a critical filter,
+/// so --fail-on high must NOT trip.
+#[test]
+fn fail_on_is_disarmed_when_filter_removes_the_trigger() {
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns002/vuln.rs"))
+        .args(["--min-severity", "critical", "--fail-on", "high"])
+        .assert()
+        .code(0);
 }
 
 #[test]
