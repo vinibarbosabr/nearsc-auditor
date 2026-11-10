@@ -24,6 +24,8 @@ Built at NEAR HACKATHON 2026, tracks: security, agents, open.
 
 Per Q-003/Q-005: the `pre-hackathon` tag marks the v1 prompt-stack baseline (June–July 2026). Everything above it on `feat/hackathon` is new work built during the NEAR Hackathon 2026 window, with AI coding agents (see `docs/` for design decisions). The final README will link the tag diff.
 
+Process: built with agent-assisted audits; findings and their fixes are tracked as issues labeled [audit-finding](https://github.com/vinibarbosabr/nearsc-auditor/issues?q=label%3Aaudit-finding).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

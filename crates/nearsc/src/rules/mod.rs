@@ -24,6 +24,7 @@ pub trait Rule {
 }
 
 /// Static catalog entry for the v0.1 rule set.
+#[derive(serde::Serialize)]
 pub struct RuleMeta {
     pub id: &'static str,
     pub title: &'static str,
@@ -151,36 +152,25 @@ pub const CATALOG: &[RuleMeta] = &[
     },
 ];
 
-/// Run every registered rule against one file.
-pub fn run_all(context: &FileContext) -> Vec<Finding> {
-    let rules: &[&dyn Rule] = &[
+/// Every registered rule, in catalog order. `run_all` and the parity test
+/// both consume this slice; there is no parallel id list to drift.
+pub fn rules() -> &'static [&'static dyn Rule] {
+    &[
         &one_yocto_missing::OneYoctoMissing,
         &callback_not_private::CallbackNotPrivate,
         &callback_panic::CallbackPanic,
         &unchecked_promise_result::UncheckedPromiseResult,
         &init_ignore_state::InitIgnoreState,
         &upgrade_path::UpgradePath,
-    ];
-    rules.iter().flat_map(|rule| rule.check(context)).collect()
+    ]
 }
 
-/// Ids of the matchers registered in `run_all`, in order. Test-signed against
-/// the registry by `registry_ids_match_run_all` below, and used together with
-/// `CATALOG` for the catalog/matcher parity test.
-pub const RUN_ALL_IDS: &[&str] = &["NS001", "NS002", "NS003", "NS004", "NS005", "NS006"];
-
-#[cfg(test)]
-mod registry_ids_tests {
-    use super::RUN_ALL_IDS;
-
-    /// The CATALOG parity test keys off this list; fail the build when it
-    /// drifts from `run_all`'s actual registration order.
-    #[test]
-    fn run_all_ids_cover_six_shipped_rules() {
-        assert_eq!(RUN_ALL_IDS.len(), 6);
-        assert_eq!(RUN_ALL_IDS[0], "NS001");
-        assert_eq!(RUN_ALL_IDS[5], "NS006");
-    }
+/// Run every registered rule against one file.
+pub fn run_all(context: &FileContext) -> Vec<Finding> {
+    rules()
+        .iter()
+        .flat_map(|rule| rule.check(context))
+        .collect()
 }
 
 /// True when an attribute's path ends with `name` (`#[private]`, `#[init]`, ...).
@@ -267,7 +257,7 @@ pub fn body_has_guard(block: &syn::Block) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{body_has_guard, CATALOG, RUN_ALL_IDS};
+    use super::{body_has_guard, rules, CATALOG};
 
     #[test]
     fn detects_assert_eq_guard() {
@@ -310,20 +300,11 @@ mod tests {
 
     /// Every registered matcher has a catalog entry, and every catalog entry
     /// with a matcher corresponds to a registered rule (docs <-> code parity).
+    /// Registered ids are derived from the same slice `run_all` iterates; the
+    /// catalog/matcher relationship is what the loops assert.
     #[test]
     fn catalog_matches_the_registered_matchers() {
-        let registered: Vec<&str> = RUN_ALL_IDS.to_vec();
-        let with_matcher: Vec<&str> = CATALOG
-            .iter()
-            .filter_map(|entry| entry.matcher)
-            .map(|matcher| {
-                CATALOG
-                    .iter()
-                    .find(|entry| entry.matcher == Some(matcher))
-                    .expect("entry")
-                    .id
-            })
-            .collect();
+        let registered: Vec<&str> = rules().iter().map(|rule| rule.id()).collect();
 
         for id in &registered {
             let entry = CATALOG
@@ -332,10 +313,16 @@ mod tests {
                 .unwrap_or_else(|| panic!("CATALOG missing {id}"));
             assert!(entry.matcher.is_some(), "{id} shipped but marked planned");
         }
-        for id in &with_matcher {
+        for entry in CATALOG.iter().filter_map(|entry| entry.matcher) {
             assert!(
-                registered.contains(id),
-                "CATALOG claims matcher for {id} but run_all does not register it"
+                registered.contains(
+                    &CATALOG
+                        .iter()
+                        .find(|candidate| candidate.matcher == Some(entry))
+                        .expect("entry")
+                        .id
+                ),
+                "CATALOG claims matcher {entry} but run_all does not register a rule using it"
             );
         }
         for entry in CATALOG.iter().filter(|entry| entry.matcher.is_none()) {

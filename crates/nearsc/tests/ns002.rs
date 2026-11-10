@@ -19,6 +19,11 @@ fn vulnerable_fixture_emits_exactly_ns002() {
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
     assert_eq!(ids, vec!["NS002"]);
     assert!(result.findings[0].message.contains("on_result"));
+    assert_eq!(result.findings[0].severity, nearsc::finding::Severity::High);
+    assert_eq!(
+        result.findings[0].confidence,
+        nearsc::finding::Confidence::Spec
+    );
 }
 
 #[test]

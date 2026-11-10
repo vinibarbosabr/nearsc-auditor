@@ -29,7 +29,7 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 2. **Write `rules/NS0xx.toml`.** Metadata, severity, confidence, tags, refs, message, vulnerable snippet, fixed snippet. The `fixed` block is mandatory. **Status:** the TOML layer is planned to land with the `v0.1.0` tag; until then the matcher registry in `crates/nearsc/src/rules/mod.rs` is the source of truth.
 3. **Implement the matcher.** `crates/nearsc/src/rules/ns0xx.rs`, registered in the registry. Pure function over `FileContext`, no I/O, no network.
 4. **Add fixtures.** `tests/fixtures/NS0xx/vuln.rs` must emit exactly that rule id; `fixed.rs` must emit nothing.
-5. **Add a snapshot test.** `insta` locks rule id, line, and severity.
+5. **Add a per-rule integration test** asserting the fixture pair, severity, and confidence (see `crates/nearsc/tests/ns002.rs`).
 6. **Document it.** Add the rule section to [RULES.md](RULES.md) with why, detection, false positives, and refs.
 7. **PR.** One rule per PR. Include the fixture pair and the docs change.
 
@@ -67,7 +67,7 @@ fix: stable sort for findings on same line
 ## Review checklist (for maintainers)
 
 - [ ] Fixture pair proves the rule works and does not over-trigger.
-- [ ] TOML and matcher are in sync (parity test passes).
+- [ ] CATALOG and matchers are in sync (parity test passes).
 - [ ] RULES.md updated.
 - [ ] No network, no execution, no secrets in the change.
 - [ ] Determinism preserved (no timestamps or random ordering in findings).

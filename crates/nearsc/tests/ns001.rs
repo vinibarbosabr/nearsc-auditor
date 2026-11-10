@@ -49,6 +49,29 @@ fn helper_with_the_check_satisfies_the_rule() {
 }
 
 #[test]
+fn zero_yocto_check_is_not_a_guard() {
+    let result = engine::scan_path(&fixture("ns001/zero_yocto.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(ids, vec!["NS001"]);
+}
+
+#[test]
+fn macro_one_yocto_check_recognized() {
+    let result = engine::scan_path(&fixture("ns001/macro_check.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_unchecked_transfer() {
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     assert!(

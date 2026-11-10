@@ -13,6 +13,10 @@ fn nearsc() -> Command {
     Command::cargo_bin("nearsc").expect("nearsc binary")
 }
 
+fn example() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/vulnerable-contract")
+}
+
 #[test]
 fn scan_missing_path_fails_loudly() {
     nearsc()
@@ -87,29 +91,40 @@ fn min_severity_at_threshold_keeps_findings() {
         .stdout(contains("NS002"));
 }
 
+/// The example contract keeps high findings at --min-severity medium,
+/// so --fail-on high still trips exit 1.
 #[test]
-fn fail_on_applies_after_min_severity_filter() {
-    // The example contract has high findings (NS001/NS002/NS004). Filtering at
-    // medium keeps them, so --fail-on high must still trip exit 1.
+fn fail_on_trips_after_min_severity_filter_keeps_highs() {
     nearsc()
         .arg("scan")
         .arg(example())
         .args(["--min-severity", "medium", "--fail-on", "high"])
         .assert()
         .code(1);
-    // Filtering at critical keeps only criticals; there are none above high in
-    // the medium+ range after filtering... the criticals NS005/NS006 remain, so
-    // the gate still trips. Filter to nothing instead: no rule emits only low.
+}
+
+/// Criticals survive a medium filter too, so a critical gate still trips.
+#[test]
+fn fail_on_trips_on_criticals_kept_by_filter() {
     nearsc()
         .arg("scan")
         .arg(example())
-        .args(["--min-severity", "low", "--fail-on", "high"])
+        .args(["--min-severity", "low", "--fail-on", "critical"])
         .assert()
         .code(1);
 }
 
-fn example() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/vulnerable-contract")
+/// Filtering away the only finding disarms the gate: exit 0.
+/// The ns002 fixture's single high finding is removed by a critical filter,
+/// so --fail-on high must NOT trip.
+#[test]
+fn fail_on_is_disarmed_when_filter_removes_the_trigger() {
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns002/vuln.rs"))
+        .args(["--min-severity", "critical", "--fail-on", "high"])
+        .assert()
+        .code(0);
 }
 
 #[test]
@@ -154,6 +169,48 @@ fn rules_list_prints_the_full_catalog() {
         .stdout(contains("NS001"))
         .stdout(contains("NS012"))
         .stdout(contains("planned Wed 2026-11-11"));
+}
+
+#[test]
+fn rules_list_json_prints_the_catalog() {
+    nearsc()
+        .args(["rules", "list", "--format", "json"])
+        .assert()
+        .code(0)
+        .stdout(contains("\"id\": \"NS001\""))
+        .stdout(contains("\"status\": \"shipped\""));
+}
+
+#[test]
+fn scan_only_runs_exactly_the_requested_rule() {
+    // The ns001 fixture triggers NS001; running with --only ns002 emits nothing.
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns001/vuln.rs"))
+        .args(["--only", "ns002"])
+        .assert()
+        .code(0)
+        .stdout(contains("0 findings"))
+        .stdout(contains("NS001").not());
+    // Running with --only ns001 emits exactly NS001.
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns001/vuln.rs"))
+        .args(["--only", "ns001"])
+        .assert()
+        .code(0)
+        .stdout(contains("NS001"));
+}
+
+#[test]
+fn scan_only_unknown_id_exits_2() {
+    nearsc()
+        .arg("scan")
+        .arg(fixture("ns002/vuln.rs"))
+        .args(["--only", "NOPE"])
+        .assert()
+        .code(2)
+        .stderr(contains("unknown rule id"));
 }
 
 #[test]

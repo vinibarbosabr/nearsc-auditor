@@ -1,6 +1,6 @@
 # nearsc docs
 
-> **Status:** design documentation for nearsc v0.1, built during the NEAR Hackathon 2026 (Nov 1–14). Commands and behaviors marked **planned** are not shipped until the `v0.1.0` tag. If this page and the code disagree, the code wins; open an issue.
+> **Status:** design documentation for nearsc v0.1, built during the NEAR Hackathon 2026 (submission window Nov 1–14; this rewrite started Nov 9). Commands and behaviors marked **planned** are not shipped until the `v0.1.0` tag. If this page and the code disagree, the code wins; open an issue.
 
 nearsc is a security auditing toolkit for NEAR smart contracts: a deterministic scanner, an agent-facing MCP server, and a knowledge base of real NEAR audit precedent.
 
