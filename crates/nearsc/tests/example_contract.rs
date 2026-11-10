@@ -20,7 +20,10 @@ fn example_contract_emits_exactly_the_seeded_rules() {
     ids.sort();
     assert_eq!(
         ids,
-        vec!["NS001", "NS002", "NS003", "NS004", "NS005", "NS006", "NS007", "NS008", "NS012"],
+        vec![
+            "NS001", "NS002", "NS003", "NS004", "NS005", "NS006", "NS007", "NS008", "NS009",
+            "NS012",
+        ],
         "example contract seeds drifted: {ids:?}"
     );
 

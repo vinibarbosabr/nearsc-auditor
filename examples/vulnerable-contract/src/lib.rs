@@ -15,6 +15,7 @@ pub struct VulnerableVault {
     owner: AccountId,
     balances: LookupMap<AccountId, u128>,
     notes: LookupMap<String, String>,
+    candidates: Vec<AccountId>,
     pending_withdrawals: Vec<u128>,
 }
 
@@ -33,6 +34,7 @@ impl VulnerableVault {
             owner,
             balances: LookupMap::new(b"b"),
             notes: LookupMap::new(b"n"),
+            candidates: Vec::new(),
             pending_withdrawals: Vec::new(),
         }
     }
@@ -106,8 +108,17 @@ impl VulnerableVault {
             owner,
             balances: LookupMap::new(b"b"),
             notes: LookupMap::new(b"n"),
+            candidates: Vec::new(),
             pending_withdrawals: Vec::new(),
         });
+    }
+
+    /// NS009 seed: lottery index derived from predictable block data.
+    pub fn draw_winner(&self) -> AccountId {
+        let index =
+            (env::block_index() as u128 + env::block_timestamp() as u128)
+                % self.candidates.len() as u128;
+        self.candidates[index as usize].clone()
     }
 
     /// NS008 seed: caller-controlled storage write with no deposit or
@@ -147,6 +158,7 @@ impl VulnerableVault {
             owner: env::predecessor_account_id(),
             balances: LookupMap::new(b"b"),
             notes: LookupMap::new(b"n"),
+            candidates: Vec::new(),
             pending_withdrawals: Vec::new(),
         }
     }

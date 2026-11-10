@@ -199,12 +199,13 @@ pub fn migrate() -> Self {
 
 ## NS009: insecure-randomness
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `insecure_randomness`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** randomness
-- **Detects:** entropy derived from `block_index`, `block_timestamp`, or `predecessor_account_id` (including hashes of those values).
+- **Detects:** entropy derived from `block_index` or `block_timestamp` inside a hash-shaped call (`sha256`, `keccak`, `hash*`) or a `%`-modulo selection.
 - **Why it matters:** block data is predictable or influenceable. Lotteries, NFT minting, and shuffles built on it are exploitable.
-- **Detection:** call scan for those APIs inside expressions that feed a hash or a selection index.
-- **Refs:** [NEAR docs](https://docs.near.org/)
+- **Detection:** value-flow-by-shape: the probe tracks whether expression context is "inside a hash call" or "inside a `%` expression"; a predictable call (`block_index`, `block_timestamp`) encountered there is the finding (reported at the call site). Timestamp comparisons for deadlines/bookkeeping pass. Commit-reveal (hashing a revealed secret) is the fixed shape and hashes of caller secrets pass.
+- **False positives:** modulo arithmetic on user-sized counters that never sees block data; hash uses where the hashed input is a secret, not environment data.
+- **Refs:** [NEAR randomness](https://docs.near.org/smart-contracts/security/random)
 
 ---
 

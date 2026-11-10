@@ -7,6 +7,7 @@
 pub mod callback_not_private;
 pub mod callback_panic;
 pub mod init_ignore_state;
+pub mod insecure_randomness;
 pub mod one_yocto_missing;
 pub mod privileged_setter;
 pub mod storage_griefing;
@@ -122,9 +123,9 @@ pub const CATALOG: &[RuleMeta] = &[
         title: "insecure-randomness",
         severity: crate::finding::Severity::Medium,
         confidence: crate::finding::Confidence::Heuristic,
-        matcher: None,
-        status: "planned Wed 2026-11-11",
-        refs: &["https://docs.near.org/"],
+        matcher: Some("insecure_randomness"),
+        status: "shipped",
+        refs: &["https://docs.near.org/smart-contracts/security/random"],
     },
     RuleMeta {
         id: "NS010",
@@ -168,6 +169,7 @@ pub fn rules() -> &'static [&'static dyn Rule] {
         &privileged_setter::PrivilegedSetter,
         &unbounded_iteration::UnboundedIteration,
         &storage_griefing::StorageGriefing,
+        &insecure_randomness::InsecureRandomness,
     ]
 }
 
