@@ -1,5 +1,6 @@
-//! Output renderers: text, JSON, SARIF. HTML lands in `report/html.rs`.
+//! Output renderers: text, JSON, SARIF, HTML.
 
+pub mod html;
 pub mod sarif;
 
 use crate::engine::ScanResult;
@@ -42,4 +43,9 @@ pub fn render_json(result: &ScanResult) -> anyhow::Result<String> {
 /// SARIF 2.1.0 document.
 pub fn render_sarif(result: &ScanResult) -> anyhow::Result<String> {
     Ok(sarif::render(result))
+}
+
+/// Self-contained HTML report.
+pub fn render_html(result: &ScanResult) -> anyhow::Result<String> {
+    Ok(html::render(result))
 }
