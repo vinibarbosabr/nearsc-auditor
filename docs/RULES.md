@@ -66,7 +66,7 @@ pub fn on_withdraw(&mut self, amount: U128) {
 
 ## NS003: callback-panic-risk
 
-- **Status:** spec, matcher planned Tue 2026-11-10 (NS001-NS006 batch)
+- **Status:** shipped · **Matcher:** `callback_panic`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** async, callbacks, robustness
 - **Detects:** `unwrap()`, `expect()`, `panic!`, or unchecked slice indexing inside `#[private]` callback functions.
 - **Why it matters:** a panic in a callback aborts the receipt. Funds and state can be left in a half-updated condition, and retries are not automatic. Callbacks should handle failure explicitly and stay panic-free.

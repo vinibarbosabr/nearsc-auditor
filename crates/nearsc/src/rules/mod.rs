@@ -5,6 +5,7 @@
 //! registry here is the source of truth for what actually runs.
 
 pub mod callback_not_private;
+pub mod callback_panic;
 pub mod one_yocto_missing;
 
 use syn::visit::Visit;
@@ -24,6 +25,7 @@ pub fn run_all(context: &FileContext) -> Vec<Finding> {
     let rules: &[&dyn Rule] = &[
         &one_yocto_missing::OneYoctoMissing,
         &callback_not_private::CallbackNotPrivate,
+        &callback_panic::CallbackPanic,
     ];
     rules.iter().flat_map(|rule| rule.check(context)).collect()
 }
