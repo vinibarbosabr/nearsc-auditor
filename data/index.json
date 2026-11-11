@@ -437,5 +437,25 @@
     "source": "https://x.com/AlexAuroraDev/status/2111124226962870770",
     "retrieved": "2026-11-09",
     "confidence": "verified-public"
+  },
+  {
+    "id": "rhea-margin-slippage-2026-04",
+    "kind": "postmortem",
+    "title": "RHEA Finance margin-trading slippage exploit (16 Apr 2026)",
+    "project": "rhea-finance",
+    "year": 2026,
+    "tags": [
+      "lending",
+      "defi",
+      "slippage",
+      "oracle-manipulation",
+      "margin-trading",
+      "min-amount-out"
+    ],
+    "path": "data/postmortems/rhea-margin-slippage-2026-04.md",
+    "summary": "Burrow/RHEA margin trading summed min_amount_out across swap actions without accounting for intermediary token reuse between steps; an attacker routed borrowed debt through self-built fake-token Ref pools, drained $18.4M from the reserve pool, then staged liquidations. Partial recovery (funds returned/frozen); lending contract frozen during recovery.",
+    "source": "https://x.com/rhea_finance/status/2045203607856042118",
+    "retrieved": "2026-11-12",
+    "confidence": "verified-public"
   }
 ]
