@@ -1,0 +1,35 @@
+name: self-scan
+
+# Dogfood: run the nearsc GitHub Action on the deliberately vulnerable
+# example and upload its SARIF. The workflow stays green on purpose: the
+# example is supposed to produce findings, the assertions pin them.
+on:
+  push:
+    branches: [main, feat/hackathon]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  self-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build nearsc from this checkout (crates.io still holds the 0.0.0 placeholder)
+        run: cargo install --path crates/nearsc --locked
+      - name: Scan the vulnerable example
+        id: scan
+        uses: ./action
+        with:
+          path: examples/vulnerable-contract
+      - name: Assert the seeded findings (fixture oracle)
+        run: |
+          summary="${{ steps.scan.outputs.summary }}"
+          echo "summary: $summary"
+          grep -q "12 findings (critical 2, high 4, medium 5, low 1, info 0)" <<< "$summary"
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}

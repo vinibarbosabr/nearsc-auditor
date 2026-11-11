@@ -1,0 +1,56 @@
+name: "nearsc scan"
+description: >-
+  Scan Rust sources for NEAR smart-contract security issues with the
+  deterministic nearsc engine and produce a SARIF report. Uses a `nearsc`
+  binary already on PATH if present, otherwise installs from crates.io.
+inputs:
+  path:
+    description: "Directory or .rs file to scan (relative to the workspace)"
+    required: false
+    default: "."
+  fail-on:
+    description: "Exit 1 when a finding at or above this severity is present (critical|high|medium|low|info). Empty = report only."
+    required: false
+    default: ""
+  sarif-path:
+    description: "Where to write the SARIF report"
+    required: false
+    default: ".nearsc/report.sarif"
+outputs:
+  sarif:
+    description: "Path of the generated SARIF report"
+    value: ${{ steps.scan.outputs.sarif }}
+  summary:
+    description: "Summary line, e.g. '12 findings (critical 2, high 4, medium 5, low 1, info 0)'"
+    value: ${{ steps.scan.outputs.summary }}
+runs:
+  using: "composite"
+  steps:
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
+    - name: Install nearsc (skipped when already on PATH)
+      shell: bash
+      run: |
+        command -v nearsc >/dev/null 2>&1 || cargo install --locked nearsc
+    - name: Run nearsc scan
+      id: scan
+      shell: bash
+      run: |
+        mkdir -p "$(dirname "$INPUT_SARIF")"
+        args=(scan "$INPUT_PATH" --format sarif --output "$INPUT_SARIF")
+        if [ -n "$INPUT_FAIL_ON" ]; then
+          args+=(--fail-on "$INPUT_FAIL_ON")
+        fi
+        code=0
+        # `--output` prints nothing, so the summary comes from a text pass.
+        summary="$(nearsc scan "$INPUT_PATH" --format text 2>/dev/null | tail -n 1)" || code=$?
+        nearsc "${args[@]}" 2>/dev/null || code=$?
+        echo "summary=$summary" >> "$GITHUB_OUTPUT"
+        echo "sarif=$INPUT_SARIF" >> "$GITHUB_OUTPUT"
+        # Sanity: the SARIF must exist and be valid SARIF 2.1.
+        python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["version"].startswith("2.1"), "not SARIF 2.1"' "$INPUT_SARIF"
+        exit "$code"
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_SARIF: ${{ inputs.sarif-path }}
