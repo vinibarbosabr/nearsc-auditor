@@ -166,6 +166,26 @@ const PATTERNS_CAP: usize = 3;
 /// Cap audit/postmortem results: index entries are small, searches are broad.
 const AUDITS_CAP: usize = 10;
 
+/// Does the query look like a rule id (NS001..NS012 shape)?
+fn is_rule_query(query: &str) -> bool {
+    let query = query.trim();
+    query.len() == 5
+        && query[..2].eq_ignore_ascii_case("ns")
+        && query[2..].chars().all(|c| c.is_ascii_digit())
+}
+
+/// Frontmatter severity filter shared by the patterns tool.
+fn matches_severity(entry: &IndexEntry, min: Option<SeverityArg>) -> bool {
+    match min {
+        Some(min) => entry
+            .severity
+            .as_deref()
+            .and_then(parse_severity)
+            .is_some_and(|severity| severity <= Severity::from(min)),
+        None => true,
+    }
+}
+
 #[derive(Clone)]
 struct NearscMcp;
 
@@ -201,21 +221,27 @@ impl NearscMcp {
             return Err(tool_error("nearsc_patterns", "empty query"));
         }
         let all = kb::load_index().map_err(|err| tool_error("nearsc_patterns", err))?;
-        let mut matches: Vec<&IndexEntry> = kb::search(&all, &query)
-            .into_iter()
-            .filter(|entry| entry.kind == "pattern")
-            .filter(|entry| {
-                severity
-                    .map(|min| {
-                        entry
-                            .severity
-                            .as_deref()
-                            .and_then(parse_severity)
-                            .is_some_and(|sev| sev <= Severity::from(min))
-                    })
-                    .unwrap_or(true)
-            })
-            .collect();
+        let mut matches: Vec<&IndexEntry> = if is_rule_query(&query) {
+            // Rule ids never appear in titles or summaries; answer id lookups
+            // directly from the index `rule` field.
+            let rule = query.trim().to_ascii_uppercase();
+            all.iter()
+                .filter(|entry| entry.kind == "pattern")
+                .filter(|entry| {
+                    entry
+                        .rule
+                        .as_deref()
+                        .is_some_and(|r| r.eq_ignore_ascii_case(&rule))
+                })
+                .filter(|entry| matches_severity(entry, severity))
+                .collect()
+        } else {
+            kb::search(&all, &query)
+                .into_iter()
+                .filter(|entry| entry.kind == "pattern")
+                .filter(|entry| matches_severity(entry, severity))
+                .collect()
+        };
         let total = matches.len();
         matches.truncate(PATTERNS_CAP);
         let hits: Vec<PatternHit> = matches

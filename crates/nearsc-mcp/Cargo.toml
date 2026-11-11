@@ -1,3 +1,6 @@
+[dev-dependencies]
+serde_json = "1"
+
 [package]
 name = "nearsc-mcp"
 version.workspace = true
