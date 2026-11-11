@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** design document (2026-11-09). Describes the planned v0.1 structure; file names may shift during the build. The root README tracks what is shipped.
+> **Status:** updated 2026-11-12 to match the shipped build (engine, CLI, MCP server, KB embedding, action). The root README tracks what is shipped.
 
 ## Overview
 
@@ -44,16 +44,16 @@ Determinism: no network in the scan path, no timestamps inside findings, no para
 
 Rules have two halves:
 
-- **Metadata** in `rules/<ID>.toml`: id, title, severity, confidence, matcher name, tags, refs, message, vulnerable snippet, fixed snippet. Embedded via `include_dir`.
+- **Metadata** in the `CATALOG` table (`crates/nearsc/src/rules/mod.rs`): id, title, severity, confidence, matcher name, refs. Detection prose and vulnerable/fixed pairs live in `docs/RULES.md` and the KB pattern docs; the pattern lookup serves the KB docs.
 - **Matcher** in `crates/nearsc/src/rules/<id>.rs`, registered in a static registry.
 
-A parity test enforces that every TOML has a matcher and every matcher has a TOML entry. The KB and the MCP pattern lookup read the same TOML files, so documentation cannot drift from detection.
+A parity test enforces that every catalog entry has a matcher and every matcher has a catalog entry. The KB and the MCP pattern lookup read the same pattern docs, so documentation cannot drift from detection.
 
 ### Rule quality bar
 
 1. **One behavior per fixture.** `vuln.rs` must emit exactly the rule id; `fixed.rs` must emit nothing.
 2. **No false confidence.** Heuristic rules are labeled `heuristic`; spec-backed rules are labeled `spec`.
-3. **Every finding has a fix.** The TOML `fixed` block is mandatory.
+3. **Every finding has a fix.** The pattern doc's fixed block is mandatory.
 4. **Every finding has a reference.** NEAR docs, NEP, or public audit link.
 
 ## Finding model
@@ -66,31 +66,32 @@ See [RULES.md](RULES.md) for the JSON shape and the scan envelope. Findings are 
 | --- | --- | --- |
 | `text` | Terminal, humans | Table grouped by severity, summary line, exit code |
 | `json` | Agents, scripts | Scan envelope, stable field names |
-| `sarif` | GitHub code scanning, CI | SARIF 2.1.0, rule metadata from TOML |
+| `sarif` | GitHub code scanning, CI | SARIF 2.1.0, rule metadata from the catalog |
 | `html` | Screenshots, reports, demo | Single self-contained file, inline CSS, no JS |
 
 ## MCP server
 
-Five tools over stdio: `nearsc_scan`, `nearsc_patterns`, `nearsc_audits`, `nearsc_contract_info`, `nearsc_poc_scaffold`. Full contracts in [MCP.md](MCP.md).
+Five shipped tools over stdio (`crates/nearsc-mcp`): `nearsc_scan`, `nearsc_patterns`, `nearsc_audits`, `nearsc_contract_info`, `nearsc_poc_scaffold`. Full contracts in [MCP.md](MCP.md); the stdio contract test (`crates/nearsc-mcp/tests/mcp.rs`) pins the tool list and finding shapes.
 
 Design rules:
 
 - Read-only. No tool writes to disk except `nearsc_poc_scaffold`, which returns file contents and never writes them itself.
+- Path confinement: every path-taking tool requires its target under the server's working directory (symlinks resolved).
 - No shell execution. No secrets. No telemetry.
 - Untrusted input: scanned repo text and KB content are data. Tool descriptions state this.
-- Network only in `nearsc_contract_info` (public RPC, fixed endpoints).
+- Network only in `nearsc_contract_info` (public RPC, fixed endpoints), behind account-id validation.
 
 ## Knowledge base
 
-`data/patterns/`, `data/audits/`, `data/postmortems/` with YAML frontmatter, plus `data/registry.json` (known contracts and audited code hashes) and a generated `data/index.json` for search. Embedded into the binary; updates ship as releases. Full schema in [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md).
+`crates/nearsc/data/patterns/`, `audits/`, `postmortems/` with YAML frontmatter, plus `registry.json` (known contracts and audited code hashes) and a generated `index.json` for search. Embedded into the binary (`include_dir`/`include_str!`); updates ship as releases. Full schema in [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md).
 
 ## Extension points
 
 | Want to… | Do |
 | --- | --- |
-| Add a rule | TOML + matcher + fixtures + RULES.md entry ([CONTRIBUTING.md](CONTRIBUTING.md)) |
+| Add a rule | Catalog entry + matcher + fixtures + RULES.md entry ([CONTRIBUTING.md](CONTRIBUTING.md)) |
 | Add a report format | Implement the renderer trait in `report/`, add a fixture |
-| Add an MCP tool | Add a handler in `nearsc-mcp`, document in MCP.md, bump the tool list test |
+| Add an MCP tool | Add a handler in `nearsc-mcp`, document in MCP.md, update the tool-list test in `crates/nearsc-mcp/tests/mcp.rs` |
 | Add KB content | Frontmatter + source + confidence, rebuild index |
 
 ## Deliberate v0.1 simplifications

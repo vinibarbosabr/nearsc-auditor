@@ -36,6 +36,7 @@ struct Tool {
 struct Driver {
     name: &'static str,
     version: &'static str,
+    #[serde(rename = "informationUri")]
     information_uri: &'static str,
     #[serde(rename = "rules")]
     catalog: Vec<CatalogRule>,

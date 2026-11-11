@@ -1,6 +1,6 @@
 # Knowledge base
 
-> **Status:** schema and sourcing rules for v0.1 (2026-11-09). Seed content is being gathered during the hackathon window; the index ships embedded in the binary.
+> **Status:** schema and sourcing rules for v0.1 (2026-11-09, paths updated 2026-11-12). The KB ships embedded in the binary; the index regeneration command requires a checkout.
 
 ## Purpose
 
@@ -9,13 +9,15 @@ A scanner tells you a pattern is present. Precedent tells you why it matters. Th
 ## Layout
 
 ```
-data/
+crates/nearsc/data/
 ├── patterns/       # NEAR vulnerability classes (one file per class)
 ├── audits/         # curated public audit reports (summary + source link)
 ├── postmortems/    # public incident postmortems (adjusted, sourced)
 ├── registry.json   # known contracts + audited code hashes
 └── index.json      # generated search index (checked in)
 ```
+
+The directory ships embedded in the binary (`include_dir`/`include_str!`, D-005); `nearsc kb-index` regenerates the index from a checkout.
 
 ## Entry depth (D-017)
 
@@ -29,7 +31,7 @@ Audit and postmortem entries ship at one of three depths:
 
 Full transcripts are never published here: third-party reports are summarized and linked per
 the license rules below, and the embedded binary stays small (D-011). Findings are classified
-against the pattern catalogue (`data/patterns/`); unclassified findings are marked
+against the pattern catalogue (`crates/nearsc/data/patterns/`); unclassified findings are marked
 `uncategorized` with a note on the missing class. Code excerpts are quoted from the audited
 project's own repository at the audited commit (commit-pinned permalink) when its license
 permits (MIT, Apache-2.0), with attribution; otherwise the entry is paraphrase-only. All
@@ -82,7 +84,7 @@ The same vocabulary the ledger projects use. A missing record never proves absen
 
 ## Registry
 
-`data/registry.json` maps known contract accounts to audited code hashes and audit links:
+`crates/nearsc/data/registry.json` maps known contract accounts to audited code hashes and audit links:
 
 ```json
 {
@@ -99,17 +101,17 @@ The same vocabulary the ledger projects use. A missing record never proves absen
 
 ## Index
 
-`data/index.json` is a flat array generated from the frontmatter:
+`crates/nearsc/data/index.json` is a flat array generated from the frontmatter:
 
 ```json
 {
-  "id": "audits/burrowland",
+  "id": "burrowland-blocksec-2022-02",
   "kind": "audit",
   "title": "…",
   "project": "burrowland",
   "tags": ["lending", "promise-flows"],
   "severity": "high",
-  "path": "data/audits/burrowland.md",
+  "path": "crates/nearsc/data/audits/burrowland-blocksec-2022-02.md",
   "summary": "One paragraph.",
   "source": "https://…",
   "retrieved": "2026-11-10",

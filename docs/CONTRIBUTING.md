@@ -25,8 +25,8 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 
 ## Add a rule
 
-1. **Pick the next id.** `NS0xx`, sequential. Check `rules/` for collisions.
-2. **Write `rules/NS0xx.toml`.** Metadata, severity, confidence, tags, refs, message, vulnerable snippet, fixed snippet. The `fixed` block is mandatory. **Status:** the TOML layer is planned to land with the `v0.1.0` tag; until then the matcher registry in `crates/nearsc/src/rules/mod.rs` is the source of truth.
+1. **Pick the next id.** `NS0xx`, sequential. Check the `CATALOG` table for collisions.
+2. **Add a catalog entry** in `crates/nearsc/src/rules/mod.rs`: id, title, severity, confidence, refs, matcher. Then write the matcher in the same tree. **Status:** shipped; the `CATALOG` table is the source of truth and the parity test keeps it in sync with the registered matchers.
 3. **Implement the matcher.** `crates/nearsc/src/rules/ns0xx.rs`, registered in the registry. Pure function over `FileContext`, no I/O, no network.
 4. **Add fixtures.** `tests/fixtures/NS0xx/vuln.rs` must emit exactly that rule id; `fixed.rs` must emit nothing.
 5. **Add a per-rule integration test** asserting the fixture pair, severity, and confidence (see `crates/nearsc/tests/ns002.rs`).
@@ -42,16 +42,16 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 
 ## Add a KB entry
 
-1. Pick `data/patterns/`, `data/audits/`, or `data/postmortems/`.
+1. Pick `crates/nearsc/data/patterns/`, `crates/nearsc/data/audits/`, or `crates/nearsc/data/postmortems/`.
 2. Add the frontmatter: title, kind, source (required for audits/postmortems), retrieved date, confidence, tags.
 3. Summarize; link the source; never copy third-party text wholesale.
-4. Rebuild `data/index.json`:
+4. Rebuild `crates/nearsc/data/index.json`:
 
    ```bash
-   cargo run -p nearsc -- kb-index > data/index.json
+   cargo run -p nearsc -- kb-index > crates/nearsc/data/index.json
    ```
 
-   `crates/nearsc/tests/kb.rs` (`index_json_is_in_sync_with_data_directory`) fails if the checked-in index drifts from `data/`, so CI blocks an unsynced index.
+   `crates/nearsc/tests/kb.rs` (`index_json_is_in_sync_with_data_directory`) fails if the checked-in index drifts from `data/`, so CI blocks an unsynced index. The data ships embedded in the binary (D-005); the tests also pin the shipped entry counts.
 5. PR with the source link in the description.
 
 ## Commit style

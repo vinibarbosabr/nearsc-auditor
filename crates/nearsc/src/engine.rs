@@ -81,6 +81,13 @@ pub fn scan_path(target: &Path) -> ScanResult {
     assemble(target, findings, parse_errors)
 }
 
+/// Keep findings at or above `min` (critical = most severe) and recount the
+/// summary. Shared by the CLI `--min-severity` and the MCP `nearsc_scan`.
+pub fn filter_min_severity(result: &mut ScanResult, min: Severity) {
+    result.findings.retain(|finding| finding.severity <= min);
+    result.summary.recount(&result.findings);
+}
+
 /// Scan a directory tree or single `.rs` file, running only the rules whose
 /// ids (case-insensitive) appear in `only`.
 ///
