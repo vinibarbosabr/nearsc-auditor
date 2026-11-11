@@ -63,6 +63,15 @@ findings.
 Loops over compile-time constants; loops whose collection is provably capped at
 a small number and the cap is enforced on insert.
 
+## Precedent
+
+- [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-1, unbounded
+  payout loop over an attacker-writable application collection bricks `admin_process_payouts`
+  (Critical, fixed); GUV-12, unpaginated `get_providers` view (Low, partially fixed).
+- [near-intents-guvenkaya-2025-02](../audits/near-intents-guvenkaya-2025-02.md): GUV-2,
+  unbounded per-account public-key iteration in `public_keys_of` enables a key-stuffing DoS
+  (Low, not fixed).
+
 ## References
 
 - [Best practices (NEAR docs)](https://docs.near.org/smart-contracts/anatomy/best-practices.md)
