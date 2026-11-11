@@ -6,8 +6,6 @@
 //! `data/registry.json`. Registration/DAO-D-008 decision: the registry ships
 //! empty; entries are seeded from the audit KB, never invented.
 
-use std::path::Path;
-
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
@@ -111,7 +109,9 @@ impl QueryResult {
 const NO_CODE_HASH: &str = "11111111111111111111111111111111";
 
 /// Registry contents: well-known accounts, their audit-backed code hashes,
-/// and verification dates. Empty-by-design at v0.1 (see docs/DESIGN-DECISIONS.md).
+/// and verification dates. Compiled in from `data/registry.json` (D-011);
+/// entries are seeded from the audit KB, never invented.
+static REGISTRY_JSON: &str = include_str!("../data/registry.json");
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Registry {
     #[serde(flatten)]
@@ -126,16 +126,9 @@ pub struct RegistryEntry {
     pub verified_at: String,
 }
 
-/// Load `data/registry.json`; an absent file is an empty registry, not an
-/// error (the lookup then simply never matches).
+/// The audited-build registry, compiled into the binary (D-011).
 pub fn load_registry() -> anyhow::Result<Registry> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/registry.json");
-    if !path.exists() {
-        return Ok(Registry::default());
-    }
-    let text =
-        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-    serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))
+    serde_json::from_str(REGISTRY_JSON).context("parsing embedded data/registry.json")
 }
 
 /// Does the live code hash match the audited hash recorded for this account?
