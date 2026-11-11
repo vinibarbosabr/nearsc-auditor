@@ -40,19 +40,19 @@
 
 ## D-005: data embedded in the binary
 
-**Decision:** embed rules TOML, KB files, and the registry via `include_dir`.
+**Decision:** embed the KB (patterns, audits, postmortems, generated index) and the audited-build registry via `include_dir`/`include_str!`, shipped 2026-11-11 (PR #63). `data/` moved to `crates/nearsc/data/` so the embedded paths resolve both from a git checkout and from a crates.io package.
 
 **Why:** single-binary installs, deterministic builds, no runtime data path configuration. KB updates ship as releases.
 
-**Consequences:** no hot-swappable data directory in v0.1; acceptable for the current scale.
+**Consequences:** no hot-swappable data directory in v0.1; acceptable for the current scale. `nearsc kb-index` remains the checkout-only regeneration command.
 
-## D-006: rules as TOML metadata + Rust matchers
+## D-006: rules as code catalog + Rust matchers
 
-**Decision:** metadata (severity, refs, snippets, message) in `rules/*.toml`; detection in Rust matchers; a parity test keeps them in sync.
+**Decision:** rule metadata lives in the `CATALOG` table in `crates/nearsc/src/rules/mod.rs`; detection in Rust matchers in the same tree; a parity test keeps them in sync. The earlier plan for a separate `rules/*.toml` layer was dropped on 2026-11-11 (with the owner): the catalog table serves the same single-source-of-truth role for the CLI findings, the MCP pattern lookup, and `docs/RULES.md`, without a second format to keep compiled.
 
-**Why:** one source of truth for the CLI findings, the MCP pattern lookup, and the docs. Contributors can improve metadata without touching the engine; matchers stay type-safe.
+**Why:** one source of truth, no drift between what ships and what the docs claim; matchers stay type-safe.
 
-**Scheduling note (2026-11-11, confirmed with the owner):** the TOML layer and the `include_dir` embedding land Thursday morning, immediately before the five MCP tools are built, and include moving `data/` and `rules/` under `crates/nearsc/` so the embedded paths resolve both from a git checkout and from a crates.io package. It cannot slip later: the crates.io publish (issue #10) requires the embedded data, and the MCP pattern tool is its first consumer.
+**Scheduling note (2026-11-11, confirmed with the owner):** the TOML layer was superseded by the catalog-table decision above; the `include_dir` embedding of `data/` landed as planned (PR #63) before the five MCP tools (PR #64) were built.
 
 ## D-007: name nearsc
 
@@ -64,7 +64,7 @@
 
 **Context:** the registry maps NEAR contract accounts to audited code hashes. A hash is trivially verifiable on-chain; the "audited" claim is only honest when a public audit exists that we can link. A registry entry without that link would be invented trust, which the KB sourcing rules (verified-public, no unsourced claims) forbid. Which projects can honestly be claimed is therefore a function of how many sourced audit summaries the KB holds - the KB must expand before meaningful seeds exist.
 
-**Decision (2026-11-11):** Wednesday ships the RPC lookup (`nearsc contract <account_id>`), the `data/registry.json` schema, and the loader/matcher code path, with an empty registry. Registry seeding (3-5 entries) lands after the KB expansion session, drafted from the expanded audit KB. The EOD gate `nearsc contract wrap.near` returns a code hash is satisfied by the RPC fetch alone (it is optional and outside the scan-path determinism contract).
+**Decision (2026-11-11):** shipped the RPC lookup (`nearsc contract <account_id>`), the `data/registry.json` schema, and the loader/matcher code path; the registry was then seeded (3 entries) after the KB expansion session, drafted from the shipped audit KB. The EOD gate `nearsc contract wrap.near` returns a code hash is satisfied by the RPC fetch alone (it is optional and outside the scan-path determinism contract).
 
 **Amendment (2026-11-12, D-017 session):** the registry is seeded with `contract.main.burrow.near`, `intents.near`, and `v2.ref-finance.near`; `code_hash` values fetched live via RPC, each entry backed by shipped audit/postmortem entries with explicit coverage caveats (the BlockSec audits cover 2022 commits, the Guvenkaya audit covers the Feb 2025 baseline; deployed code has changed since in both cases and the entries say so).
 

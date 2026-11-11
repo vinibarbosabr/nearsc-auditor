@@ -87,7 +87,7 @@ Returns file contents and instructions. It never writes to disk; the agent or us
 
 ## Install and configure
 
-From a checkout: `cargo run -p nearsc-mcp` (stdio). After the v0.1.0 release: `cargo install nearsc-mcp`.
+From a checkout: `cargo run -p nearsc-mcp` (stdio) or `cargo install --path crates/nearsc-mcp --locked`. After the v0.1.0 release: `cargo install nearsc-mcp`.
 
 Claude Code (example):
 
@@ -127,16 +127,37 @@ opencode (`opencode.json`, shape per harness docs):
 - **Network scope.** Only `nearsc_contract_info` uses the network, against fixed public RPC endpoints. No telemetry.
 - **Determinism.** Tool outputs are stable for the same inputs (`fetched_at` in `nearsc_contract_info` and RPC results are the live exceptions). Result caps: `nearsc_patterns` returns at most 3 full pattern docs (with a truncation note), `nearsc_audits` at most 10 index entries.
 
-## Example session (planned)
+## Example session (real, from the 2026-11-12 gate session)
+
+Agent session in this repo with the server configured (`opencode.json` pointing at `cargo run -p nearsc-mcp`); every step is a real tool call:
 
 ```
-user: audit ./contracts/vault and tell me what to fix first
-agent: [nearsc_scan] 3 findings: NS002 high, NS001 high, NS008 medium
-agent: [nearsc_patterns callback] → fix guidance + vulnerable/fixed snippets
-agent: [nearsc_audits callback hijack] → 2 precedents from public reports
-agent: [nearsc_contract_info vault.near] → deployed code hash does not match the audited build
-agent: summary with fixes in priority order
+user: audit examples/vulnerable-contract: scan it, take the top critical/high
+      finding, pull its pattern and one real audit precedent, check the
+      counterparty intents.near on mainnet, and scaffold a PoC for the
+      callback finding. Summarize what to fix first.
+
+[nearsc_scan examples/vulnerable-contract]
+  → 12 findings: critical 2 (NS006 set_state unguarded write, NS005 migrate
+    ignore_state unguarded), high 4 (NS001, NS002, NS004, NS010), medium 5,
+    low 1
+
+[nearsc_patterns {query: "NS006"}]
+  → upgrade-path-unguarded: why it matters, vulnerable + fixed code
+[nearsc_audits {query: "withdraw"}]
+  → sputnikdao2-storage-withdraw-2026-07 (verified-public),
+    near-intents-deposit-notification-2026-10
+[nearsc_contract_info {account_id: "intents.near"}]
+  → exists, has_code, registry MATCH against the audited build, 2 audit links
+[nearsc_poc_scaffold {rule_id: "NS002", contract_path: "examples/vulnerable-contract"}]
+  → nearsc-poc-ns002/ skeleton: Cargo.toml, tests/poc_ns002.rs, pattern note
+
+agent: fix the two unguarded privileged paths first (NS005/NS006 are
+account-takeover class), then the callback/result chain (NS002/NS004), then
+the transfer authorization (NS001/NS010).
 ```
+
+Negative probes from the same session: `nearsc_scan` on `/etc` and `nearsc_contract_info` on `WRAP.NEAR` both returned structured tool errors (path confinement, account-id validation).
 
 ## Versioning
 

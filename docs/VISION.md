@@ -1,6 +1,6 @@
 # Vision: the security layer for NEAR builders and their agents
 
-> **Status:** design document (2026-11-09). Nearsc v0.1 is being built during the NEAR Hackathon 2026; see the root README for shipped status.
+> **Status:** design document (2026-11-09, updated 2026-11-12). Nearsc v0.1 ships during the NEAR Hackathon 2026; see the root README for shipped status.
 
 ## The problem
 

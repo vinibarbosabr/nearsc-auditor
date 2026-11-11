@@ -4,7 +4,7 @@
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
 
-Machine-readable metadata lives in `rules/<ID>.toml` (**planned, lands with the `v0.1.0` tag**, see [ARCHITECTURE.md](ARCHITECTURE.md)); until then this page is the source of truth for ids, severities, and detection notes. The binary renders `nearsc rules list` / `nearsc rules show <id>` from the `CATALOG` table in `crates/nearsc/src/rules/mod.rs`, which the catalog/matcher parity test in the same file keeps in sync with the registered matchers.
+Machine-readable metadata is the `CATALOG` table in `crates/nearsc/src/rules/mod.rs` (shipped; the earlier plan for a `rules/<ID>.toml` layer was dropped, see [DESIGN-DECISIONS.md](DESIGN-DECISIONS.md) D-006). This page is the prose reference for detection notes and fix guidance; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in the same file keeps the table in sync with the registered matchers.
 
 ---
 
