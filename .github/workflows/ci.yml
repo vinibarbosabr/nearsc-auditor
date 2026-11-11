@@ -17,5 +17,11 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
-      - name: dogfood scan (binary end-to-end)
-        run: cargo run -q -p nearsc -- scan examples/vulnerable-contract
+      - name: dogfood scan (binary end-to-end, gated)
+        run: |
+          set +e
+          cargo run -q -p nearsc -- scan examples/vulnerable-contract --fail-on critical
+          code=$?
+          set -e
+          echo "scan exit code: $code (expected 1: seeded criticals present)"
+          test "$code" -eq 1
