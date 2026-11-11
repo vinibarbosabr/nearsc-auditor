@@ -28,7 +28,7 @@ jobs:
         run: |
           summary="${{ steps.scan.outputs.summary }}"
           echo "summary: $summary"
-          echo "$summary" | grep -q "12 findings (critical 2, high 4, medium 5, low 1, info 0)"
+          grep -q "12 findings (critical 2, high 4, medium 5, low 1, info 0)" <<< "$summary"
       - name: Upload SARIF to code scanning
         uses: github/codeql-action/upload-sarif@v3
         with:

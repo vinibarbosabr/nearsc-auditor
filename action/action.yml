@@ -42,10 +42,12 @@ runs:
           args+=(--fail-on "$INPUT_FAIL_ON")
         fi
         code=0
-        summary="$(nearsc "${args[@]}" 2>/dev/null | tail -n 1)" || code=$?
+        # `--output` prints nothing, so the summary comes from a text pass.
+        summary="$(nearsc scan "$INPUT_PATH" --format text 2>/dev/null | tail -n 1)" || code=$?
+        nearsc "${args[@]}" 2>/dev/null || code=$?
         echo "summary=$summary" >> "$GITHUB_OUTPUT"
         echo "sarif=$INPUT_SARIF" >> "$GITHUB_OUTPUT"
-        # Sanity: the SARIF must exist and be valid JSON.
+        # Sanity: the SARIF must exist and be valid SARIF 2.1.
         python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["version"].startswith("2.1"), "not SARIF 2.1"' "$INPUT_SARIF"
         exit "$code"
       env:
