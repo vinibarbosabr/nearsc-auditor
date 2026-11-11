@@ -287,6 +287,8 @@ fn write_report(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
 
 /// Render a finished scan (json, sarif, or text), then apply the `--fail-on`
 /// gate.
+/// Render a finished scan (json, sarif, or text), then apply the `--fail-on`
+/// gate.
 fn render_and_gate(
     mut result: engine::ScanResult,
     format: String,
@@ -296,8 +298,7 @@ fn render_and_gate(
 ) -> anyhow::Result<u8> {
     if let Some(min) = min_severity {
         let min = Severity::from(min);
-        result.findings.retain(|finding| finding.severity <= min);
-        result.summary.recount(&result.findings);
+        engine::filter_min_severity(&mut result, min);
     }
     let rendered: anyhow::Result<String> = match format.as_str() {
         "json" => nearsc::report::render_json(&result),

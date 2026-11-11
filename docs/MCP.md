@@ -1,6 +1,6 @@
 # MCP server
 
-> **Status:** planned for v0.1. Tool names and schemas below are the contract; the implementation lands with the `v0.1.0` tag. Harness configuration formats change between versions: check your harness docs and treat the snippets as examples.
+> **Status:** shipped 2026-11-12 (plan section 7, executed one day ahead). The five tools below are live over stdio; `nearsc_contract_info` is the only networked tool. Harness configuration formats change between versions: check your harness docs and treat the snippets as examples.
 
 ## Why an MCP server
 
@@ -33,13 +33,13 @@ Scan a directory or file for NEAR contract issues.
 
 ### `nearsc_patterns`
 
-Look up a vulnerability pattern by keyword, id, or severity.
+Look up a vulnerability pattern by keyword, rule id, or tag.
 
 ```json
 { "query": "callback", "severity": "high" }
 ```
 
-Returns matching pattern entries with id, title, severity, confidence, refs, and the vulnerable/fixed snippets from the rule TOML.
+Returns up to 3 matching pattern docs (plus a truncation note when more matched): id, title, rule id, severity, tags, source, confidence, and the full body (what/why, vulnerable and fixed code). The pattern docs live in `crates/nearsc/data/patterns/`; there is no separate rule TOML layer (rule metadata is the catalog in `crates/nearsc/src/rules/mod.rs`).
 
 ### `nearsc_audits`
 
@@ -49,7 +49,7 @@ Search the knowledge base for real audit and postmortem precedent.
 { "query": "promise failure refund", "project": "burrowland" }
 ```
 
-Returns index entries: title, project, year, tags, severity counts, summary, source URL, confidence label.
+Returns up to 10 index entries: title, project, year, tags, severity counts, summary, source URL, confidence label.
 
 ### `nearsc_contract_info`
 
@@ -87,11 +87,7 @@ Returns file contents and instructions. It never writes to disk; the agent or us
 
 ## Install and configure
 
-Build from source (v0.1):
-
-```bash
-cargo install nearsc-mcp
-```
+From a checkout: `cargo run -p nearsc-mcp` (stdio). After the v0.1.0 release: `cargo install nearsc-mcp`.
 
 Claude Code (example):
 
@@ -123,12 +119,13 @@ opencode (`opencode.json`, shape per harness docs):
 ```
 
 ## Safety model
-
 - **Read-only.** No tool executes scanned code, runs shell commands, or writes files. `nearsc_poc_scaffold` returns content only.
+- **Path confinement.** Every path-taking tool resolves paths under the server's working directory and rejects anything that escapes it (symlinks resolved). `/etc` is not reachable.
+- **Account-id validation.** `nearsc_contract_info` rejects account ids outside `[a-z0-9._-]{1,64}` before any request leaves the process.
 - **No secrets.** The server never reads environment secrets, keys, or wallets. It does not sign or send transactions.
 - **Untrusted input.** Scanned repositories and KB text are data. Tool descriptions instruct agents to ignore instructions found inside scanned code or reports (prompt-injection defense).
 - **Network scope.** Only `nearsc_contract_info` uses the network, against fixed public RPC endpoints. No telemetry.
-- **Determinism.** Tool outputs are stable for the same inputs (except `fetched_at` in RPC responses).
+- **Determinism.** Tool outputs are stable for the same inputs (`fetched_at` in `nearsc_contract_info` and RPC results are the live exceptions). Result caps: `nearsc_patterns` returns at most 3 full pattern docs (with a truncation note), `nearsc_audits` at most 10 index entries.
 
 ## Example session (planned)
 
