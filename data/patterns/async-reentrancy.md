@@ -113,6 +113,12 @@ the credit is not spendable until the callback, or if the pending operation is
 tracked separately. The finding is the ordering; the exploit is the ability to
 act on the intermediate state.
 
+## Precedent
+
+- [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-6, `paid_at`
+  set inside `transfer_payout_callback` left payouts re-payable during the cross-receipt
+  window; only the synchronous `all_paid_out` guard kept it unexploitable (Low, fixed).
+
 ## References
 
 - [Reentrancy (NEAR docs)](https://docs.near.org/smart-contracts/security/cross-contract-calls/reentrancy.md)

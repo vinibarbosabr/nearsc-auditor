@@ -61,6 +61,12 @@ Methods that are intentionally custodial or session-based and document why the
 yocto check is not required; wrappers that delegate to an internal method that
 performs the check.
 
+## Precedent
+
+- [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-13,
+  privileged pot/sybil functions without `assert_one_yocto` were callable through
+  function-call access keys (Low, fixed).
+
 ## References
 
 - [Require one yoctoNEAR (NEAR docs)](https://docs.near.org/smart-contracts/security/one_yocto.md)

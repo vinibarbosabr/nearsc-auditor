@@ -68,6 +68,12 @@ Callbacks whose mutation is safe regardless of the outcome (e.g. clearing a
 pending marker that must be cleared either way); calls whose failure the
 contract cannot act on.
 
+## Precedent
+
+- [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-3, refund
+  target computed from `predecessor_account_id()` inside a `#[private]` callback; failed
+  sybil checks paid the contract instead of the donor (High, fixed).
+
 ## References
 
 - [Private callbacks (NEAR docs)](https://docs.near.org/smart-contracts/security/cross-contract-calls/callbacks.md)

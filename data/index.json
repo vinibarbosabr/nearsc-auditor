@@ -86,6 +86,33 @@
     "confidence": "verified-public"
   },
   {
+    "id": "near-intents-guvenkaya-2025-02",
+    "kind": "audit",
+    "title": "NEAR Intents audit, Guvenkaya, February-March 2025",
+    "project": "near-intents",
+    "year": 2025,
+    "severity_counts": {
+      "critical": 0,
+      "high": 0,
+      "informational": 2,
+      "low": 1,
+      "medium": 1
+    },
+    "tags": [
+      "defi",
+      "bridge",
+      "intents",
+      "unbounded-iteration",
+      "key-validation",
+      "events"
+    ],
+    "path": "data/audits/near-intents-guvenkaya-2025-02.md",
+    "summary": "Guvenkaya's NEAR Intents review (defuse suite; 103 files, baseline 6da9e2b3): 4 findings - 1 medium (repeating failed intents can steal funds in P2P transfers, scheduled), 1 low (per-user public-key iteration DoS), 2 informational (public-key validation gaps, missing relayer-key events). 0 fixed at report time; all remediation simple. Findings classified per D-017.",
+    "source": "https://github.com/Guvenkaya/public-reports/blob/master/NEAR-Defuse-Labs-NEAR-Intents-Security-Review.pdf",
+    "retrieved": "2026-11-12",
+    "confidence": "verified-public"
+  },
+  {
     "id": "potlock-guvenkaya-2024-01",
     "kind": "audit",
     "title": "Potlock audit, Guvenkaya, January 2024",
