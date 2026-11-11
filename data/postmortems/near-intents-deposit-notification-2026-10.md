@@ -193,3 +193,8 @@ pub enum DepositAction {
 ## 11. Sources
 
 Primary: [official postmortem (X, Alex Shevchenko, 16 Oct 2026)](https://x.com/AlexAuroraDev/status/2111124226962870770). Repository evidence: [near/intents](https://github.com/near/intents), specifically PRs and commits cited in section 7. Protocol documentation: [NEAR docs index](https://docs.near.org/llms.txt) pages cited inline.
+
+## 12. Related KB entries
+
+- [NEAR Intents audit, Guvenkaya, February-March 2025](../audits/near-intents-guvenkaya-2025-02.md) - the pre-incident audit of the same contract suite: GUV-1 covers intent replay via failed intents (the same fail-then-repeat receipt semantics family this exploit lived in); baseline `6da9e2b3ab598f277d45fb356aee01a5d80ac0a6` predates the deposit-notification feature's exploited state.
+- Patterns: [unchecked-promise-results](../patterns/unchecked-promise-results.md), [async-reentrancy](../patterns/async-reentrancy.md), [callback-panic-safety](../patterns/callback-panic-safety.md).
