@@ -14,11 +14,15 @@
     "tags": [
       "lending",
       "defi",
+      "storage-griefing",
+      "unbounded-iteration",
+      "one-yocto-transfer-auth",
+      "privileged-setter-unguarded",
       "storage-accounting",
       "oracle"
     ],
     "path": "data/audits/burrowland-blocksec-2022-02.md",
-    "summary": "BlockSec's first Burrow audit (6 issues: 5 medium, 1 low, plus 7 recommendations, all fixed). Storage accounting in liquidation and per-account storage updates is the recurring theme.",
+    "summary": "BlockSec's first Burrow audit (6 issues: 5 medium, 1 low, plus 7 recommendations, all fixed). Storage accounting in liquidation and per-account storage updates is the recurring theme. Findings classified per D-017.",
     "source": "https://github.com/NearDeFi/burrowland/blob/main/blocksec-audit-signed-1.pdf",
     "retrieved": "2026-11-09",
     "confidence": "verified-public"
@@ -32,11 +36,13 @@
     "tags": [
       "lending",
       "defi",
-      "storage-accounting",
+      "storage-griefing",
+      "unbounded-iteration",
+      "privileged-setter-unguarded",
       "remediation"
     ],
     "path": "data/audits/burrowland-blocksec-2022-03.md",
-    "summary": "BlockSec's follow-up Burrow review after the February fixes: seven findings across software and DeFi security, all fixed in the audited commits.",
+    "summary": "BlockSec's follow-up Burrow review after the February fixes: seven findings across software and DeFi security, all fixed in the audited commits. Findings classified per D-017.",
     "source": "https://github.com/NearDeFi/burrowland/blob/main/blocksec-audit-signed-2.pdf",
     "retrieved": "2026-11-09",
     "confidence": "verified-public"
@@ -50,12 +56,13 @@
     "tags": [
       "liquid-staking",
       "defi",
-      "precision",
-      "gas",
-      "rewards"
+      "unbounded-iteration",
+      "unchecked-promise-results",
+      "privileged-setter-unguarded",
+      "precision"
     ],
     "path": "data/audits/linear-blocksec-2022-04.md",
-    "summary": "BlockSec's LiNEAR liquid-staking audit: precision loss, locked balances, unlimited beneficiary reward distribution, and staking-request liveness, plus recommendations on gas checks and centralization.",
+    "summary": "BlockSec's LiNEAR liquid-staking audit: precision loss, locked balances, unlimited beneficiary reward distribution, and staking-request liveness, plus recommendations on gas checks and centralization. Findings classified per D-017.",
     "source": "https://github.com/linear-protocol/audits/blob/main/BlockSec%20-%20Security%20Audit%20Report%20for%20LiNEAR%20-%20202204.pdf",
     "retrieved": "2026-11-09",
     "confidence": "verified-public"
@@ -76,11 +83,13 @@
     "tags": [
       "liquid-staking",
       "storage-griefing",
+      "privileged-setter-unguarded",
+      "unbounded-iteration",
       "events",
       "nep-145"
     ],
     "path": "data/audits/linear-hacken-2024-05.md",
-    "summary": "Hacken's 2024 LiNEAR review: storage griefing on deposit-account creation (Medium), inability to free unused storage (Low), and missing events on privileged setters (Info).",
+    "summary": "Hacken's 2024 LiNEAR review: storage griefing on deposit-account creation (Medium), inability to free unused storage (Low), and missing events on privileged setters (Info). Findings classified per D-017.",
     "source": "https://github.com/linear-protocol/audits/blob/main/Hacken%20-%20Smart%20Contract%20Code%20Review%20and%20Security%20Analysis%20Report%20for%20LiNEAR%20-%20202405.pdf",
     "retrieved": "2026-11-09",
     "confidence": "verified-public"
@@ -150,12 +159,13 @@
     "year": 2026,
     "tags": [
       "dao",
-      "storage-accounting",
+      "storage-griefing",
+      "one-yocto-transfer-auth",
       "refunds",
       "access-control"
     ],
     "path": "data/audits/sputnikdao2-storage-withdraw-2026-07.md",
-    "summary": "Public issue: sputnik-staking's storage_withdraw transfers NEAR to the user but never reduces the recorded refundable storage balance, so the same storage credit can be withdrawn repeatedly.",
+    "summary": "Public issue: sputnik-staking's storage_withdraw transfers NEAR to the user but never reduces the recorded refundable storage balance, so the same storage credit can be withdrawn repeatedly. Classified per D-017.",
     "source": "https://github.com/near-daos/sputnik-dao-contract/issues/239",
     "retrieved": "2026-11-09",
     "confidence": "verified-public"
@@ -430,7 +440,8 @@
       "callbacks",
       "ledger-accounting",
       "defi",
-      "bridge"
+      "bridge",
+      "unchecked-promise-results"
     ],
     "path": "data/postmortems/near-intents-deposit-notification-2026-10.md",
     "summary": "An attacker failed the notification leg of ft_transfer_call deposits; the FT contract refunded the tokens while the Intents Verifier kept the internal credit, minting $3.8M in ghost balances that were withdrawn through Omni. All funds were recovered; the feature was removed.",

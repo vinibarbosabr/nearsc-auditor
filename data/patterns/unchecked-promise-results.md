@@ -73,6 +73,9 @@ contract cannot act on.
 - [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-3, refund
   target computed from `predecessor_account_id()` inside a `#[private]` callback; failed
   sybil checks paid the contract instead of the donor (High, fixed).
+- [linear-blocksec-2022-04](../audits/linear-blocksec-2022-04.md): missing `prepaid_gas`
+  check in `ft_transfer_call` - a gas-shortfall receiver resolves as a refund the caller
+  must handle (recommendation).
 
 ## References
 

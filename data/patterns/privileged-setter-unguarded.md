@@ -72,6 +72,9 @@ procedural macro.
 
 - [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-10,
   `owner_set_admins` removed the listed admins instead of inserting them (Low, fixed).
+- [linear-hacken-2024-05](../audits/linear-hacken-2024-05.md): F-2024-1975, the privileged
+  setter set (`set_owner`, `add_manager`, `set_treasury`, `pause`, `resume`, ...) lacked
+  events and monitoring; NS012 flags the same method shapes for missing caller guards (Info).
 
 ## References
 
