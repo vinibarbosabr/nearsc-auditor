@@ -101,14 +101,16 @@
     "tags": [
       "public-goods",
       "quadratic-funding",
+      "unbounded-iteration",
+      "storage-griefing",
+      "unchecked-promise-results",
       "dos",
       "state-corruption",
-      "arithmetic",
       "storage",
       "access-control"
     ],
     "path": "data/audits/potlock-guvenkaya-2024-01.md",
-    "summary": "Guvenkaya's Potlock review (donation, pot, pot factory, registry, sybil; 4273 LoC): 20 findings - 2 critical (payout DoS via unapproved applications, nested-collection state corruption), 2 high (callback refund misrouting, fee rounding), 13 fixed, 7 acknowledged. Storage accounting and admin/payout flows are the recurring themes.",
+    "summary": "Guvenkaya's Potlock review (donation, pot, pot factory, registry, sybil; 4273 LoC): 20 findings - 2 critical (payout DoS via unapproved applications, nested-collection state corruption), 2 high (callback refund misrouting, fee rounding), 13 fixed, 7 acknowledged. Storage accounting and admin/payout flows are the recurring themes. Findings classified per D-017.",
     "source": "https://github.com/Guvenkaya/public-reports/blob/master/Potlock-NEAR-Rust-Smart-Contract-Security-Assessment.pdf",
     "retrieved": "2026-11-11",
     "confidence": "verified-public"
