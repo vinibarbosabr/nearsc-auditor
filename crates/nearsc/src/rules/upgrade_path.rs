@@ -9,6 +9,7 @@
 use syn::visit::Visit;
 use syn::{ImplItemFn, ItemFn};
 
+use super::common::body_writes_state;
 use super::{body_has_guard, last_segment_is, snippet_at, Rule};
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
@@ -80,54 +81,6 @@ impl Collector {
             column: start.column + 1,
         });
     }
-}
-
-/// Does the body call `state_write` (e.g. `env::state_write(...)`), directly
-/// or inside a macro?
-fn body_writes_state(block: &syn::Block) -> bool {
-    #[derive(Default)]
-    struct WriteProbe {
-        writes: bool,
-    }
-
-    impl<'ast> Visit<'ast> for WriteProbe {
-        fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
-            if call.method == "state_write" {
-                self.writes = true;
-            }
-            syn::visit::visit_expr_method_call(self, call);
-        }
-
-        fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
-            if let syn::Expr::Path(path) = &*call.func {
-                if let Some(segment) = path.path.segments.last() {
-                    if segment.ident == "state_write" {
-                        self.writes = true;
-                    }
-                }
-            }
-            syn::visit::visit_expr_call(self, call);
-        }
-
-        fn visit_macro(&mut self, mac: &'ast syn::Macro) {
-            if mac
-                .path
-                .segments
-                .last()
-                .is_some_and(|segment| segment.ident == "state_write")
-            {
-                self.writes = true;
-            }
-            if mac.tokens.to_string().contains("state_write") {
-                self.writes = true;
-            }
-            syn::visit::visit_macro(self, mac);
-        }
-    }
-
-    let mut probe = WriteProbe::default();
-    probe.visit_block(block);
-    probe.writes
 }
 
 impl<'ast> Visit<'ast> for Collector {

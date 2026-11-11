@@ -17,6 +17,7 @@ use syn::spanned::Spanned;
 use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
+use super::common::body_token_text;
 use super::{last_segment_is, snippet_at, Rule};
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
@@ -164,41 +165,6 @@ impl<'ast> Visit<'ast> for AbortProbe {
         }
         syn::visit::visit_expr_call(self, call);
     }
-}
-
-/// Flattened identifier text of the body (macro groups included).
-fn body_token_text(block: &syn::Block) -> String {
-    #[derive(Default)]
-    struct TextProbe {
-        text: String,
-    }
-
-    impl<'ast> Visit<'ast> for TextProbe {
-        fn visit_ident(&mut self, ident: &'ast syn::Ident) {
-            self.text.push_str(&ident.to_string());
-            self.text.push(' ');
-            syn::visit::visit_ident(self, ident);
-        }
-
-        fn visit_macro(&mut self, mac: &'ast syn::Macro) {
-            let mut pending: Vec<proc_macro2::TokenTree> = mac.tokens.clone().into_iter().collect();
-            while let Some(tree) = pending.pop() {
-                match tree {
-                    proc_macro2::TokenTree::Ident(ident) => {
-                        self.text.push_str(&ident.to_string());
-                        self.text.push(' ');
-                    }
-                    proc_macro2::TokenTree::Group(group) => pending.extend(group.stream()),
-                    _ => {}
-                }
-            }
-            syn::visit::visit_macro(self, mac);
-        }
-    }
-
-    let mut probe = TextProbe::default();
-    probe.visit_block(block);
-    probe.text
 }
 
 impl<'ast> Visit<'ast> for Collector {
