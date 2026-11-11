@@ -2,40 +2,43 @@
 
 > **Status:** script for the v0.1 demo (2026-11-09). Commands marked planned land with the `v0.1.0` tag. The 60-second quickstart is the path a judge or screener follows.
 
-## 60-second quickstart (planned)
+## 60-second quickstart (from source, real today)
 
 ```bash
-# 1. Install (crates.io, after v0.1.0)
-cargo install nearsc
-
-# 2. Clone the repo with the deliberately vulnerable example
+# 1. Clone the repo with the deliberately vulnerable example
 git clone https://github.com/vinibarbosabr/nearsc-auditor
 cd nearsc-auditor
 
-# 3. Scan
-nearsc scan examples/vulnerable-contract
+# 2. Scan (from source; `cargo install nearsc` lands with the v0.1.0 release)
+cargo run -p nearsc -- scan examples/vulnerable-contract
 ```
 
-Expected shape of the output (counts and line numbers depend on the fixture):
+Expected shape of the output (real run captured 2026-11-12 from this tree; regenerate if the fixture changes):
 
-```
-nearsc 0.1.0 · examples/vulnerable-contract · 4 files
-
-HIGH     NS002  callback-not-private          src/lib.rs:142
-HIGH     NS001  one-yocto-missing-on-transfer src/lib.rs:88
-CRITICAL NS005  init-ignore-state-unguarded    src/lib.rs:41
-MEDIUM   NS008  storage-griefing               src/lib.rs:210
-
-4 findings: 1 critical, 2 high, 1 medium · run with --format html for a report
+```text
+$ cargo run -p nearsc -- scan examples/vulnerable-contract
+HIGH     NS001 src/lib.rs:58 transfer method `ft_transfer` does not enforce the 1-yoctoNEAR attached deposit; add assert_one_yocto() or an equivalent check (NEP-141/171)
+MEDIUM   NS012 src/lib.rs:82 public setter `set_owner` changes privileged state or moves funds without a guard; restrict it with #[private] or assert predecessor == owner/current_account_id
+HIGH     NS002 src/lib.rs:87 callback `on_deposit_complete` can be invoked by any account; add #[private] or assert predecessor == current_account_id
+MEDIUM   NS003 src/lib.rs:95 callback `on_withdraw_result` can panic on attacker-influenced input; handle failure explicitly instead of unwrap/expect/indexing
+HIGH     NS004 src/lib.rs:111 function `on_deposit_result` consumes a promise result without matching PromiseResult::Failed; state can advance on a failed cross-contract call
+CRITICAL NS006 src/lib.rs:119 function `set_state` writes contract state without an access-control guard; a caller can overwrite it. Add #[private] or assert predecessor == current_account_id / owner
+LOW      NS011 src/lib.rs:133 payable method `claim` can abort after the deposit attached and shows no refund path; refund the attached deposit on every early exit or document why funds may stay
+MEDIUM   NS009 src/lib.rs:143 `draw_winner` derives a value from block data or the caller's account; those inputs are predictable or influenceable, so lotteries/mints built on them can be steered. Use a commit-reveal or a random-seed oracle
+MEDIUM   NS008 src/lib.rs:151 public method `free_note` stores caller-controlled data without an attached deposit or storage check; charging for storage (or requiring it up front) keeps the contract's balance from being drained
+MEDIUM   NS007 src/lib.rs:157 public method `total_pending` loops over a collection that callers can grow without a bound; add pagination or cap the iteration before gas makes this method uncallable
+HIGH     NS010 src/lib.rs:164 public method `notify_receiver` builds a Promise::new target from caller input without an allowlist check; restrict targets to state-derived values or an allowlist before the contract pays or calls attacker-chosen accounts
+CRITICAL NS005 src/lib.rs:180 ignore_state init `migrate` is not access-controlled; any account can reinitialize contract state. Add #[private] or assert predecessor == current_account_id
+12 findings (critical 2, high 4, medium 5, low 1, info 0)
 ```
 
 ```bash
-# 4. Human-readable report
-nearsc scan examples/vulnerable-contract --format html --output report.html
+# 3. Human-readable report
+cargo run -p nearsc -- scan examples/vulnerable-contract --format html --output report.html
 
-# 5. Machine formats
-nearsc scan examples/vulnerable-contract --format json
-nearsc scan examples/vulnerable-contract --format sarif
+# 4. Machine formats
+cargo run -p nearsc -- scan examples/vulnerable-contract --format json
+cargo run -p nearsc -- scan examples/vulnerable-contract --format sarif
 ```
 
 ## Agent demo (planned)
