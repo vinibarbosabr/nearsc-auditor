@@ -1,6 +1,6 @@
 # Demo
 
-> **Status:** script for the v0.1 demo (2026-11-09). Commands marked planned land with the `v0.1.0` tag. The 60-second quickstart is the path a judge or screener follows.
+> **Status:** script for the v0.1 demo (2026-11-09, updated 2026-11-12; the agent demo is verified real). Commands marked planned land with the `v0.1.0` tag. The 60-second quickstart is the path a judge or screener follows.
 
 ## 60-second quickstart (from source, real today)
 
@@ -41,17 +41,25 @@ cargo run -p nearsc -- scan examples/vulnerable-contract --format json
 cargo run -p nearsc -- scan examples/vulnerable-contract --format sarif
 ```
 
-## Agent demo (planned)
+## Agent demo (real, 2026-11-12)
 
-Start an agent session with the MCP server configured ([MCP.md](MCP.md)), then ask:
+Run an agent session with the MCP server configured ([MCP.md](MCP.md)) and ask:
 
 ```
-Audit examples/vulnerable-contract with nearsc. For each high or critical
-finding, pull the pattern guidance and one real audit precedent, then
-scaffold a workspaces-rs PoC for the callback finding.
+Audit examples/vulnerable-contract with nearsc: scan it, take the top
+critical/high finding, pull its pattern and one real audit precedent, check
+the counterparty intents.near on mainnet, and scaffold a PoC for the
+callback finding. Summarize what to fix first.
 ```
 
-The agent calls `nearsc_scan`, `nearsc_patterns`, `nearsc_audits`, and `nearsc_poc_scaffold`, and produces a report with fixes in priority order.
+Verified live in the gate session (2026-11-12): the agent calls `nearsc_scan`
+(12 findings: critical 2, high 4, medium 5, low 1), `nearsc_patterns` (NS006
+upgrade-path-unguarded with vulnerable/fixed code), `nearsc_audits`
+(sputnikdao2 storage_withdraw precedent + the NEAR Intents postmortem),
+`nearsc_contract_info` (intents.near: registry MATCH, 2 audit links), and
+`nearsc_poc_scaffold` (nearsc-poc-ns002 skeleton). Negative probes (scan of
+`/etc`, account id `WRAP.NEAR`) return structured tool errors. Capture the
+same flow on video from a fresh session.
 
 ## Full demo video script (2:00)
 
@@ -73,10 +81,11 @@ Recording notes:
 
 | Symptom | Fix |
 | --- | --- |
-| `nearsc: command not found` | `cargo install nearsc` or use `cargo run -p nearsc -- scan <path>` |
+| `nearsc: command not found` | `cargo install nearsc` (after the v0.1.0 release) or use `cargo run -p nearsc -- scan <path>` |
 | No findings on your own contract | Check the path points at Rust sources; run `nearsc rules list` to see active rules |
 | Parse errors in the output | The file uses syntax syn cannot parse; findings elsewhere are still valid |
-| MCP tool not listed | Restart the harness after editing its MCP config; check the binary is on PATH |
+| MCP tool not listed | Restart the harness after editing its MCP config; check the binary is on PATH; when running from a checkout, point the config at `cargo run -p nearsc-mcp` |
+| `nearsc_scan` errors with "escapes the working directory" | Pass paths relative to the project the harness opened; the server never scans outside it |
 
 ## For judges
 

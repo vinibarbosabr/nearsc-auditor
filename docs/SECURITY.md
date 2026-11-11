@@ -1,6 +1,6 @@
 # Security model and limits
 
-> **Status:** design document (2026-11-09). Applies to the planned v0.1; update it when the implementation changes.
+> **Status:** shipped model (2026-11-09, updated 2026-11-12 with path confinement and account-id validation). Describes v0.1 as implemented.
 
 nearsc is a security tool, so its own security posture matters. This page covers the threat model of the tool, what it guarantees, and what it explicitly does not.
 
@@ -11,6 +11,7 @@ nearsc is a security tool, so its own security posture matters. This page covers
 | Your machine | A malicious scanned repo tries to execute code | The scanner parses source text; it never builds, runs, or imports the target |
 | Your machine | Parser denial of service via pathological input | `syn` is memory-safe; per-file size cap and graceful parse errors |
 | Your agent session | Prompt injection from scanned code or KB text | Tool descriptions mark repo/KB content as untrusted data; no tool follows instructions from content |
+| Your machine | The scanner aimed outside the project (path traversal, planted symlinks) | MCP path-taking tools canonicalize the target and require it under the server's working directory; `/etc` and sibling directories are rejected |
 | Your secrets | The tool reads keys, wallets, or env files | It does not. No credential access, no signing, no transactions |
 | Supply chain | A compromised dependency ships malicious code | Pinned dependencies, `cargo-audit` in CI (planned), minimal dependency set |
 | Network | Exfiltration or telemetry | No telemetry. Network only in `nearsc_contract_info`, fixed public RPC endpoints |

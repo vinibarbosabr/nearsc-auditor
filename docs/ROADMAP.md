@@ -1,14 +1,14 @@
 # Roadmap
 
-> **Status:** direction document (2026-11-09). Dates are targets, not commitments. v0.1 ships during the NEAR Hackathon 2026 window.
+> **Status:** direction document (2026-11-09, updated 2026-11-12). Dates are targets, not commitments. v0.1 ships during the NEAR Hackathon 2026 window; the v0.1 list below is shipped except crates.io packaging (lands with the `v0.1.0` tag on Nov 14).
 
 ## v0.1: hackathon release (Nov 2026)
 
 - 12 NEAR-specific rules with fixture pairs.
 - CLI: text, JSON, SARIF, single-file HTML reports.
-- MCP server: scan, patterns, audits, contract info, PoC scaffold.
-- Knowledge base: patterns, public audits, postmortems, contract registry.
-- Agent skill v2 and a composite GitHub Action.
+- MCP server: scan, patterns, audits, contract info, PoC scaffold (shipped, with stdio contract tests).
+- Knowledge base: patterns, public audits, postmortems, contract registry (shipped, embedded in the binary).
+- Agent skill v2 (`skill/SKILL.md`) and a composite GitHub Action (`action/`, dogfooded with SARIF upload).
 - MIT license; crates.io packages `nearsc` and `nearsc-mcp`.
 
 ## v0.2: depth (Dec 2026 – Jan 2027)
