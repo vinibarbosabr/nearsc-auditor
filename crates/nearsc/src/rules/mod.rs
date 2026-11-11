@@ -56,6 +56,7 @@ pub const CATALOG: &[RuleMeta] = &[
         refs: &[
             "https://nomicon.io/Standards/Tokens/FungibleToken/Core",
             "https://nomicon.io/Standards/Tokens/NonFungibleToken/Core",
+            "https://docs.near.org/protocol/accounts-contracts/access-keys.md",
         ],
     },
     RuleMeta {
@@ -110,7 +111,7 @@ pub const CATALOG: &[RuleMeta] = &[
         confidence: crate::finding::Confidence::Heuristic,
         matcher: Some("unbounded_iteration"),
         status: "shipped",
-        refs: &["https://docs.near.org/"],
+        refs: &["https://docs.near.org/smart-contracts/anatomy/optimizations"],
     },
     RuleMeta {
         id: "NS008",
@@ -155,7 +156,7 @@ pub const CATALOG: &[RuleMeta] = &[
         confidence: crate::finding::Confidence::Heuristic,
         matcher: Some("privileged_setter"),
         status: "shipped",
-        refs: &["https://docs.near.org/protocol/accounts-contracts/access-keys"],
+        refs: &["https://docs.near.org/protocol/accounts-contracts/access-keys.md"],
     },
 ];
 
