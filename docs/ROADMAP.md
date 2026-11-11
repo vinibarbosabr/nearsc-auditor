@@ -8,7 +8,7 @@
 - CLI: text, JSON, SARIF, single-file HTML reports.
 - MCP server: scan, patterns, audits, contract info, PoC scaffold (shipped, with stdio contract tests).
 - Knowledge base: patterns, public audits, postmortems, contract registry (shipped, embedded in the binary).
-- Agent skill v2 (`skill/SKILL.md`) and a composite GitHub Action (`action/`, dogfooded with SARIF upload).
+- Agent skill v2 (`nearsc-skill/SKILL.md`) and a composite GitHub Action (`action/`, dogfooded with SARIF upload).
 - MIT license; crates.io packages `nearsc` and `nearsc-mcp`.
 
 ## v0.2: depth (Dec 2026 – Jan 2027)

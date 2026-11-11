@@ -107,7 +107,7 @@ Safety model: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Use as an agent skill
 
-Point your harness at [`skill/SKILL.md`](skill/SKILL.md) (opencode/Claude-compatible frontmatter). It carries the audit workflow: Recon → Scan → Verify → Report, NEAR context, and the safety rules.
+Point your harness at [`nearsc-skill/SKILL.md`](nearsc-skill/SKILL.md) (opencode/Claude-compatible frontmatter). It carries the audit workflow: Recon → Scan → Verify → Report, NEAR context, and the safety rules.
 
 ## GitHub Action
 
@@ -158,7 +158,7 @@ nearsc-auditor/
 │   └── nearsc-mcp/      # rmcp stdio server, 5 tools, same engine
 ├── tests/fixtures/      # vuln.rs + fixed.rs per rule (the test oracle)
 ├── examples/vulnerable-contract/   # deliberately vulnerable demo contract
-├── skill/SKILL.md       # agent skill (Recon → Scan → Verify → Report)
+├── nearsc-skill/SKILL.md # agent skill (Recon → Scan → Verify → Report)
 ├── action/              # composite GitHub Action
 ├── docs/                # design docs: rules, MCP, KB, security, demo
 └── .github/workflows/   # ci.yml, self-scan.yml, release.yml
