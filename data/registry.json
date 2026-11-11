@@ -1,2 +1,47 @@
 {
+  "contract.main.burrow.near": {
+    "label": "Burrow / RHEA lending market core",
+    "code_hash": "6Nek1MZ8cwJJ2xMQAUWup9V5AToYS9rkTxJfwo6BCpFa",
+    "audits": [
+      {
+        "title": "Burrow audit, BlockSec, February 2022",
+        "source": "https://github.com/NearDeFi/burrowland/blob/main/blocksec-audit-signed-1.pdf"
+      },
+      {
+        "title": "Burrow re-audit, BlockSec, March 2022",
+        "source": "https://github.com/NearDeFi/burrowland/blob/main/blocksec-audit-signed-2.pdf"
+      },
+      {
+        "title": "RHEA Finance margin-trading slippage exploit (16 Apr 2026)",
+        "source": "https://x.com/rhea_finance/status/2045203607856042118"
+      }
+    ],
+    "verified_at": "2026-11-12"
+  },
+  "intents.near": {
+    "label": "NEAR Intents Verifier (defuse)",
+    "code_hash": "BtA1BEFNS619KkvXFsgcpQ21Tb5yMm32aaUkn7xNothk",
+    "audits": [
+      {
+        "title": "NEAR Intents audit, Guvenkaya, February-March 2025",
+        "source": "https://github.com/Guvenkaya/public-reports/blob/master/NEAR-Defuse-Labs-NEAR-Intents-Security-Review.pdf"
+      },
+      {
+        "title": "NEAR Intents deposit-notification exploit (1 Oct 2026)",
+        "source": "https://x.com/AlexAuroraDev/status/2111124226962870770"
+      }
+    ],
+    "verified_at": "2026-11-12"
+  },
+  "v2.ref-finance.near": {
+    "label": "Ref Finance exchange v2",
+    "code_hash": "GZmkbfVLcN7ErxU9RDxP24YTaKmoVixhM6XyycP15Qvi",
+    "audits": [
+      {
+        "title": "Ref Exchange audits, BlockSec 2022 (catalogued in the KB backlog; entries pending)",
+        "source": "https://github.com/NEARBuilders/audits/blob/main/Audits/2022-11-02-Blocksec-Ref-Exchange.pdf"
+      }
+    ],
+    "verified_at": "2026-11-12"
+  }
 }

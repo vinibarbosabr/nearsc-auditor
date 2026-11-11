@@ -68,6 +68,12 @@ accounting. Confidence `heuristic`.
 Collections with bounded size per account; protocols that intentionally
 subsidize storage for a vetted allowlist.
 
+## Precedent
+
+- [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-2, nested
+  `UnorderedSet` under `payout_ids_by_project_id` never cleared before removal; payout state
+  corrupts when payouts are set a second time (Critical, fixed).
+
 ## References
 
 - [Storage cost attacks (NEAR docs)](https://docs.near.org/smart-contracts/security/storage.md)

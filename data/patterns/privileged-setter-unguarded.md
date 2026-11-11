@@ -68,6 +68,11 @@ Methods whose names match the prefix but are intentionally permissionless
 (e.g. `update_price` from an oracle callback); checks implemented in a
 procedural macro.
 
+## Precedent
+
+- [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-10,
+  `owner_set_admins` removed the listed admins instead of inserting them (Low, fixed).
+
 ## References
 
 - [Environment: predecessor and signer (NEAR docs)](https://docs.near.org/smart-contracts/anatomy/environment.md)

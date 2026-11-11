@@ -86,6 +86,63 @@
     "confidence": "verified-public"
   },
   {
+    "id": "near-intents-guvenkaya-2025-02",
+    "kind": "audit",
+    "title": "NEAR Intents audit, Guvenkaya, February-March 2025",
+    "project": "near-intents",
+    "year": 2025,
+    "severity_counts": {
+      "critical": 0,
+      "high": 0,
+      "informational": 2,
+      "low": 1,
+      "medium": 1
+    },
+    "tags": [
+      "defi",
+      "bridge",
+      "intents",
+      "unbounded-iteration",
+      "key-validation",
+      "events"
+    ],
+    "path": "data/audits/near-intents-guvenkaya-2025-02.md",
+    "summary": "Guvenkaya's NEAR Intents review (defuse suite; 103 files, baseline 6da9e2b3): 4 findings - 1 medium (repeating failed intents can steal funds in P2P transfers, scheduled), 1 low (per-user public-key iteration DoS), 2 informational (public-key validation gaps, missing relayer-key events). 0 fixed at report time; all remediation simple. Findings classified per D-017.",
+    "source": "https://github.com/Guvenkaya/public-reports/blob/master/NEAR-Defuse-Labs-NEAR-Intents-Security-Review.pdf",
+    "retrieved": "2026-11-12",
+    "confidence": "verified-public"
+  },
+  {
+    "id": "potlock-guvenkaya-2024-01",
+    "kind": "audit",
+    "title": "Potlock audit, Guvenkaya, January 2024",
+    "project": "potlock",
+    "year": 2024,
+    "severity_counts": {
+      "critical": 2,
+      "high": 2,
+      "informational": 6,
+      "low": 9,
+      "medium": 1
+    },
+    "tags": [
+      "public-goods",
+      "quadratic-funding",
+      "unbounded-iteration",
+      "storage-griefing",
+      "unchecked-promise-results",
+      "dos",
+      "state-corruption",
+      "storage",
+      "access-control"
+    ],
+    "path": "data/audits/potlock-guvenkaya-2024-01.md",
+    "summary": "Guvenkaya's Potlock review (donation, pot, pot factory, registry, sybil; 4273 LoC): 20 findings - 2 critical (payout DoS via unapproved applications, nested-collection state corruption), 2 high (callback refund misrouting, fee rounding), 13 fixed, 7 acknowledged. Storage accounting and admin/payout flows are the recurring themes. Findings classified per D-017.",
+    "source": "https://github.com/Guvenkaya/public-reports/blob/master/Potlock-NEAR-Rust-Smart-Contract-Security-Assessment.pdf",
+    "retrieved": "2026-11-11",
+    "confidence": "verified-public"
+  },
+  {
     "id": "sputnikdao2-storage-withdraw-2026-07",
     "kind": "audit",
     "title": "Sputnik DAO staking: repeated storage_withdraw (issue 239)",
@@ -379,6 +436,26 @@
     "summary": "An attacker failed the notification leg of ft_transfer_call deposits; the FT contract refunded the tokens while the Intents Verifier kept the internal credit, minting $3.8M in ghost balances that were withdrawn through Omni. All funds were recovered; the feature was removed.",
     "source": "https://x.com/AlexAuroraDev/status/2111124226962870770",
     "retrieved": "2026-11-09",
+    "confidence": "verified-public"
+  },
+  {
+    "id": "rhea-margin-slippage-2026-04",
+    "kind": "postmortem",
+    "title": "RHEA Finance margin-trading slippage exploit (16 Apr 2026)",
+    "project": "rhea-finance",
+    "year": 2026,
+    "tags": [
+      "lending",
+      "defi",
+      "slippage",
+      "oracle-manipulation",
+      "margin-trading",
+      "min-amount-out"
+    ],
+    "path": "data/postmortems/rhea-margin-slippage-2026-04.md",
+    "summary": "Burrow/RHEA margin trading summed min_amount_out across swap actions without accounting for intermediary token reuse between steps; an attacker routed borrowed debt through self-built fake-token Ref pools, drained $18.4M from the reserve pool, then staged liquidations. Partial recovery (funds returned/frozen); lending contract frozen during recovery.",
+    "source": "https://x.com/rhea_finance/status/2045203607856042118",
+    "retrieved": "2026-11-12",
     "confidence": "verified-public"
   }
 ]
