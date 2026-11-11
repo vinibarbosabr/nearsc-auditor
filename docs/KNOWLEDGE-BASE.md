@@ -17,6 +17,26 @@ data/
 └── index.json      # generated search index (checked in)
 ```
 
+## Entry depth (D-017)
+
+Audit and postmortem entries ship at one of three depths:
+
+| Depth | What ships | Where the full text lives |
+| --- | --- | --- |
+| Catalogued | scope + findings table + severity counts | this repo |
+| Curated | + per-finding blocks (issue, where + commit-pinned permalink, quoted code, impact, fix, vector + rule classification) | this repo |
+| Transcribed | + full faithful transcript | maintainer's research vault, not this repo (license + size) |
+
+Full transcripts are never published here: third-party reports are summarized and linked per
+the license rules below, and the embedded binary stays small (D-011). Findings are classified
+against the pattern catalogue (`data/patterns/`); unclassified findings are marked
+`uncategorized` with a note on the missing class. Code excerpts are quoted from the audited
+project's own repository at the audited commit (commit-pinned permalink) when its license
+permits (MIT, Apache-2.0), with attribution; otherwise the entry is paraphrase-only. The
+first entries in the classified format: [potlock-guvenkaya-2024-01](../data/audits/potlock-guvenkaya-2024-01.md)
+(transcribed + curated) and [near-intents-guvenkaya-2025-02](../data/audits/near-intents-guvenkaya-2025-02.md)
+(curated, paraphrase-only because no public upstream repo was locatable).
+
 ## Entry schema
 
 All entries use YAML frontmatter:
@@ -100,12 +120,20 @@ The index is built by a small script and checked in, so the binary and CI are de
 
 ## Seed content for v0.1
 
-- Patterns: the NEAR security classes from the v1 prompt stack (callbacks, 1-yocto, storage, reentrancy in the async model, randomness, front-running, sybil), rewritten as standalone notes. All seven classes ship in v0.1; async reentrancy, front-running, and sybil resistance are KB-only classes without a matcher.
-- Audits: burrowland, linear-protocol, sputnikdao2 (summaries + links), plus public reports gathered this week.
-- Postmortems: the NEAR Intents deposit-notification exploit (adjusted for public release, public sources only).
-- Registry: 3–5 well-known contracts with verified code hashes.
+- Patterns: 15 NEAR security classes (the v1 classes rewritten as standalone notes, plus
+  storage-griefing and sybil resistance), each now carrying a `## Precedent` section linking
+  the audit entries that exhibit the class.
+- Audits (6 shipped): burrowland x2 (BlockSec 2022, pre-D-017 summary depth), linear x2
+  (BlockSec 2022, Hacken 2024, pre-D-017 summary depth), sputnikdao2 storage-withdraw issue
+  (2026, pre-D-017 summary depth), potlock (Guvenkaya 2024, transcribed + classified per
+  D-017), near-intents (Guvenkaya 2025, curated, classified, paraphrase-only). The KB backlog
+  (maintainer's vault) holds ~57 unique public audits for catalogue expansion (D-017).
+- Postmortems (2 shipped): NEAR Intents deposit-notification exploit (Oct 2026) and RHEA
+  margin-trading slippage exploit (Apr 2026).
+- Registry: seeded 2026-11-12 - `contract.main.burrow.near`, `intents.near`,
+  `v2.ref-finance.near`, each backed by shipped entries with honest coverage caveats.
 
-**Registry footing decision (2026-11-11, with the owner):** `data/registry.json` ships v0.1 as an empty-looking-but-valid placeholder `{}` while the audit-KB expansion adds more sourced project reports. Entries get seeded only where a public audit can back them; seeding is scheduled with the KB expansion pass. The RPC lookup (`nearsc contract`) and the `nearsc_contract_info` tool work regardless and report unregistered accounts as such.
+**Registry footing (D-008, amended 2026-11-12 in the D-017 KB session):** the registry shipped empty at v0.1 scaffold and was seeded on 2026-11-12 with `contract.main.burrow.near`, `intents.near`, and `v2.ref-finance.near` - `code_hash` from live RPC only, every entry backed by a shipped audit/postmortem entry, with honest coverage caveats written into the audits list labels (e.g. the Ref entry points at the catalogued-but-pending 2022 BlockSec reports). Entries get seeded only where a shipped public entry can back them. The RPC lookup (`nearsc contract`) and the `nearsc_contract_info` tool work regardless and report unregistered accounts as such.
 
 ## Contributing
 

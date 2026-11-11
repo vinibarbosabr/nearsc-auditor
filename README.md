@@ -8,11 +8,11 @@ nearsc v0.1 will ship three things, all deterministic and offline:
 
 1. `nearsc`, a static scanner for NEAR contract Rust source (CLI, text/JSON/SARIF/HTML output).
 2. `nearsc-mcp`, an MCP server that gives coding agents the scanner plus a knowledge base of NEAR audit precedent.
-3. A knowledge base of real NEAR vulnerability patterns, audit summaries, and postmortems, embedded in the binary.
+3. A knowledge base of real NEAR vulnerability patterns, audit summaries, and postmortems, embedded in the binary: 15 pattern classes with audit-precedent links, 7 sourced audit/postmortem entries (Potlock/Guvenkaya 2024 and NEAR Intents/Guvenkaya 2025 in the classified per-finding format), and a seeded audited-build registry ([docs/KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE.md)).
 
 Built at NEAR HACKATHON 2026, tracks: security, agents, open.
 
-**Status: engine complete, not yet installable.** All 12 v0.1 rules (NS001-NS012) are shipped with fixture pairs ([docs/RULES.md](docs/RULES.md)). Run `cargo run -p nearsc -- scan examples/vulnerable-contract` for the seeded findings; `--format text|json|sarif|html`, `--only`, `--min-severity`, `--fail-on`, and `--output` are wired; `cargo run -p nearsc -- rules list|show` renders the catalog; `cargo run -p nearsc -- contract wrap.near` fetches on-chain deployment info over public RPC (outside the offline scan path) against the audited-build registry, which ships empty by design ([docs/DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md) D-008). Not shipped yet: crates.io install, the five MCP tools (the server currently exposes an echo spike), `skill/`, `action/`. The final README with verified install steps lands with the v0.1.0 release on Nov 14.
+**Status: engine complete, not yet installable.** All 12 v0.1 rules (NS001-NS012) are shipped with fixture pairs ([docs/RULES.md](docs/RULES.md)). Run `cargo run -p nearsc -- scan examples/vulnerable-contract` for the seeded findings; `--format text|json|sarif|html`, `--only`, `--min-severity`, `--fail-on`, and `--output` are wired; `cargo run -p nearsc -- rules list|show` renders the catalog; `cargo run -p nearsc -- contract wrap.near` fetches on-chain deployment info over public RPC (outside the offline scan path) against the audited-build registry, which is seeded from shipped audit entries with honest coverage caveats ([docs/DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md) D-008, [docs/KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE.md)). Not shipped yet: crates.io install, the five MCP tools (the server currently exposes an echo spike), `skill/`, `action/`. The final README with verified install steps lands with the v0.1.0 release on Nov 14.
 
 ## Repository layout
 
