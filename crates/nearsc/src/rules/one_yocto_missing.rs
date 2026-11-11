@@ -101,6 +101,8 @@ impl Collector {
 /// - a comparison where one side calls `attached_deposit` and the other is the
 ///   literal `1`, or where the operand tokens mention a `from_yoctonear(1)`
 ///   call;
+/// - the same comparison as the condition of an `if` statement (the idiomatic
+///   `if attached_deposit != from_yoctonear(1) { panic }` guard);
 /// - a comparison inside `assert!`/`assert_eq!`/`require!`, probed token-wise
 ///   the same way.
 ///
@@ -180,6 +182,17 @@ fn expr_checks_one_yocto(expr: &syn::Expr) -> bool {
         // in the visited tokens, so this also covers
         // `attached_deposit != from_yoctonear(1)`.
         return false;
+    }
+    if let syn::Expr::If(if_expr) = expr {
+        // `if env::attached_deposit() != NearToken::from_yoctonear(1)
+        //  { env::panic_str(...) }` is the idiomatic guard: the check lives
+        // in the condition. Probe it like the bare-binary case. A condition
+        // that is not a comparison falls through to the whole-expression
+        // visit below (e.g. an `if` whose body asserts the deposit).
+        if matches!(*if_expr.cond, syn::Expr::Binary(_)) {
+            probe.visit_expr(&if_expr.cond);
+            return probe.attached_deposit && probe.literal_one;
+        }
     }
     probe.visit_expr(expr);
     probe.assert_one_yocto

@@ -36,10 +36,6 @@ const STORAGE_GUARD_MARKERS: &[&str] = &[
     "unregister",
     "storage_byte_cost",
     "required_deposit",
-    // Documented exemption marker for rewrites of already-staked entries:
-    // a contract calls this to state that the write replaces an existing
-    // record instead of growing the collection.
-    "rewrite_existing_entry_marker",
 ];
 
 impl Rule for StorageGriefing {

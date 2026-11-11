@@ -12,7 +12,7 @@ nearsc v0.1 will ship three things, all deterministic and offline:
 
 Built at NEAR HACKATHON 2026, tracks: security, agents, open.
 
-**Status: scaffold.** The scanner engine now ships 6 rules (NS001-NS006, see docs/RULES.md); run them locally with `cargo run -p nearsc -- scan examples/vulnerable-contract`. There is no installable release yet. The final README, with verified commands and real output, lands with the `v0.1.0` release on Nov 14.
+**Status: engine complete, not yet installable.** All 12 v0.1 rules (NS001-NS012) are shipped with fixture pairs ([docs/RULES.md](docs/RULES.md)). Run `cargo run -p nearsc -- scan examples/vulnerable-contract` for the seeded findings; `--format text|json|sarif|html`, `--only`, `--min-severity`, `--fail-on`, and `--output` are wired; `cargo run -p nearsc -- rules list|show` renders the catalog; `cargo run -p nearsc -- contract wrap.near` fetches on-chain deployment info over public RPC (outside the offline scan path) against the audited-build registry, which ships empty by design ([docs/DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md) D-008). Not shipped yet: crates.io install, the five MCP tools (the server currently exposes an echo spike), `skill/`, `action/`. The final README with verified install steps lands with the v0.1.0 release on Nov 14.
 
 ## Repository layout
 

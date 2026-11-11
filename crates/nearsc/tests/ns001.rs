@@ -72,6 +72,17 @@ fn macro_one_yocto_check_recognized() {
 }
 
 #[test]
+fn if_shaped_one_yocto_check_is_recognized() {
+    let result = engine::scan_path(&fixture("ns001/if_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_unchecked_transfer() {
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     assert!(

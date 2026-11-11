@@ -1,16 +1,16 @@
 //! NS009: insecure randomness from predictable environment data.
 //!
-//! `env::block_index()`, `env::block_timestamp()`, and
-//! `env::predecessor_account_id()` are visible to (or shaped by) the caller
-//! and validators: using them as entropy, or feeding them into a hash and
-//! calling the result random, lets an attacker predict or bias lotteries,
+//! `env::block_index()` and `env::block_timestamp()` are visible to the
+//! caller and validators: using them as entropy, or feeding them into a hash
+//! and calling the result random, lets an attacker predict or bias lotteries,
 //! mints, and shuffles.
 //!
 //! v0.1 scope (heuristic): flag predictions only where the predictability is
 //! explicit: a hash-family call (`sha256`/`keccak`/`hash`/`Hash*` or a
-//! method named `hash_*`) or a `%`/`/`-reduced selection that takes one of
-//! the three environment values as an operand. A commented commit-reveal or
-//! random_seed-based design is the fix.
+//! method named `hash_*`) or a `%`-reduced selection that takes one of the
+//! two environment values as an operand. Caller identity is caller-influenced
+//! but not tracked by v0.1. A commented commit-reveal or random_seed-based
+//! design is the fix.
 
 use syn::spanned::Spanned;
 use syn::visit::Visit;

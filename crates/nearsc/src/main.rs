@@ -226,7 +226,17 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             },
         },
         Command::KbIndex => {
-            let index = nearsc::kb::build_index(&nearsc::kb::repo_data_dir())?;
+            let data_dir = nearsc::kb::repo_data_dir();
+            let has_kb_dir = ["patterns", "audits", "postmortems"]
+                .iter()
+                .any(|dir| data_dir.join(dir).is_dir());
+            if !has_kb_dir {
+                anyhow::bail!(
+                    "knowledge-base data not found at {}; kb-index requires a repository checkout",
+                    data_dir.display()
+                );
+            }
+            let index = nearsc::kb::build_index(&data_dir)?;
             println!("{}", serde_json::to_string_pretty(&index)?);
             Ok(0)
         }

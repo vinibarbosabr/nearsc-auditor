@@ -1,6 +1,6 @@
 # Rules
 
-> **Status:** specification for v0.1 (2026-11-10). Rule ids, severities, and detection notes are final unless the build proves a rule infeasible. Per-rule status is labeled in each section: NS001-NS006 have shipped matchers today. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary.
+> **Status:** v0.1 catalog (updated 2026-11-12). All 12 matchers are shipped and registered; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in `crates/nearsc/src/rules/mod.rs` keeps the table in sync. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. The `refs` a finding carries come from the matcher module; `Refs` lists below may add reading links.
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
 
@@ -31,7 +31,7 @@ pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option
 }
 ```
 
-- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls. **Recognized guards:** `assert_one_yocto` (call or macro), an `attached_deposit` comparison against the literal `1` or a `from_yoctonear(1)`-style call, or a same-file helper that performs one of those. 1-yocto comparisons inside `assert!`/`assert_eq!`/`require!` are recognized token-wise; a zero-yocto comparison (`!= from_yoctonear(0)`) is **not** a guard.
+- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls. **Recognized guards:** `assert_one_yocto` (call or macro), an `attached_deposit` comparison against the literal `1` or a `from_yoctonear(1)`-style call (as a bare comparison, inside `assert!`/`assert_eq!`/`require!`, or as the condition of an `if` statement), or a same-file helper that performs one of those. 1-yocto comparisons inside `assert!`/`assert_eq!`/`require!` are recognized token-wise; a zero-yocto comparison (`!= from_yoctonear(0)`) is **not** a guard.
 - **Refs:** [NEP-141 core](https://nomicon.io/Standards/Tokens/FungibleToken/Core), [NEP-171 core](https://nomicon.io/Standards/Tokens/NonFungibleToken/Core), [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)
 
 ---
@@ -235,11 +235,11 @@ pub fn migrate() -> Self {
 
 ## NS012: privileged-setter-unguarded
 
-- **Status:** spec, matcher planned Wed 2026-11-11 (NS007-NS012 batch)
+- **Status:** shipped · **Matcher:** `privileged_setter`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** access-control
-- **Detects:** public methods named `set_*`, `update_*`, `pause_*`, `withdraw_*`, `admin_*` without a predecessor assertion or owner macro.
+- **Detects:** public methods named `set_*`, `update_*`, `pause_*`, `unpause_*`, `withdraw_*`, `admin_*` without a predecessor assertion or owner macro.
 - **Why it matters:** naming conventions reveal intent. A setter without a guard is either a bug or a missing macro; either way it deserves review.
-- **Detection:** name pattern plus body check for predecessor assertions.
+- **Detection:** name-prefix scan plus body check: `#[private]`, a manual `predecessor_account_id` + `current_account_id` guard, or an `assert_self`-style macro exempts. Bodies calling `state_write` are skipped here and reported by NS006 instead: one access-control bug, one rule.
 - **False positives:** intentional public configuration methods; the rule is medium and the message asks for review.
 - **Refs:** [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)
 
@@ -247,7 +247,7 @@ pub fn migrate() -> Self {
 
 ## Finding shape
 
-Real output from `cargo run -p nearsc -- scan examples/vulnerable-contract --format json` (2026-11-10):
+Real output from `cargo run -p nearsc -- scan examples/vulnerable-contract --format json` (2026-11-12):
 
 ```json
 {
@@ -256,7 +256,7 @@ Real output from `cargo run -p nearsc -- scan examples/vulnerable-contract --for
   "severity": "high",
   "confidence": "spec",
   "file": "src/lib.rs",
-  "line": 50,
+  "line": 87,
   "column": 12,
   "snippet": "pub fn on_deposit_complete(&mut self, amount: u128) {",
   "message": "callback `on_deposit_complete` can be invoked by any account; add #[private] or assert predecessor == current_account_id",
@@ -266,7 +266,7 @@ Real output from `cargo run -p nearsc -- scan examples/vulnerable-contract --for
 }
 ```
 
-The full envelope holds 6 findings (2 critical, 3 high, 1 medium) plus the header fields; see the scan envelope paragraph below.
+The full envelope holds 12 findings (2 critical, 4 high, 5 medium, 1 low) plus the header fields; see the scan envelope paragraph below.
 
 Scan envelope: `tool`, `version`, `target`, `summary` (counts per severity), `findings`, `parse_errors`. No `generated_at`: findings and the envelope are byte-stable for the same input (determinism contract). `generated_at` is not planned to return inside findings; if an envelope-level timestamp is ever added it will be CLI-layer only, opt-in.
 
