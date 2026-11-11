@@ -15,6 +15,7 @@
 
 - **Macro-aware analysis.** Expand near-sdk macros (`ra_ap_*` or `cargo expand`) so rules see generated code.
 - **Promise-flow analysis.** Track a cross-contract call from `.then()` to callback and flag unhandled failure paths across functions.
+- **KB catalogue completion.** Convert the audit backlog through the depth tiers, ship cross-index stats (pattern → audits, derived from vector tags) and a public backlog page; upgrade the pre-D-017 entries to the classified format.
 - **NEP conformance pack.** Rules for NEP-141/171/245 edge cases beyond transfers (metadata, approvals, receiver interfaces).
 - **Rule authoring guide** and a `nearsc rules new` scaffold for contributors.
 - **Prebuilt GitHub Action** (no `cargo install` step).
