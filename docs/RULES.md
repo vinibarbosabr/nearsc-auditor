@@ -31,7 +31,7 @@ pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option
 }
 ```
 
-- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls. **Recognized guards:** `assert_one_yocto` (call or macro), an `attached_deposit` comparison against the literal `1` or a `from_yoctonear(1)`-style call, or a same-file helper that performs one of those. 1-yocto comparisons inside `assert!`/`assert_eq!`/`require!` are recognized token-wise; a zero-yocto comparison (`!= from_yoctonear(0)`) is **not** a guard.
+- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls. **Recognized guards:** `assert_one_yocto` (call or macro), an `attached_deposit` comparison against the literal `1` or a `from_yoctonear(1)`-style call (as a bare comparison, inside `assert!`/`assert_eq!`/`require!`, or as the condition of an `if` statement), or a same-file helper that performs one of those. 1-yocto comparisons inside `assert!`/`assert_eq!`/`require!` are recognized token-wise; a zero-yocto comparison (`!= from_yoctonear(0)`) is **not** a guard.
 - **Refs:** [NEP-141 core](https://nomicon.io/Standards/Tokens/FungibleToken/Core), [NEP-171 core](https://nomicon.io/Standards/Tokens/NonFungibleToken/Core), [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)
 
 ---
