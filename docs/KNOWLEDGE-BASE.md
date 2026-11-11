@@ -32,10 +32,11 @@ the license rules below, and the embedded binary stays small (D-011). Findings a
 against the pattern catalogue (`data/patterns/`); unclassified findings are marked
 `uncategorized` with a note on the missing class. Code excerpts are quoted from the audited
 project's own repository at the audited commit (commit-pinned permalink) when its license
-permits (MIT, Apache-2.0), with attribution; otherwise the entry is paraphrase-only. The
-first entries in the classified format: [potlock-guvenkaya-2024-01](../data/audits/potlock-guvenkaya-2024-01.md)
-(transcribed + curated) and [near-intents-guvenkaya-2025-02](../data/audits/near-intents-guvenkaya-2025-02.md)
-(curated, paraphrase-only because no public upstream repo was locatable).
+permits (MIT, Apache-2.0), with attribution; otherwise the entry is paraphrase-only. All
+shipped entries carry the classified findings table with vector tags; per-finding blocks ship
+where the report warranted them (potlock, near-intents). Entries still summary-depth (burrow
+x2, linear x2, sputnikdao2) are marked in their Source section; upgrading their blocks is
+v0.2 polish.
 
 ## Entry schema
 
@@ -123,13 +124,14 @@ The index is built by a small script and checked in, so the binary and CI are de
 - Patterns: 15 NEAR security classes (the v1 classes rewritten as standalone notes, plus
   storage-griefing and sybil resistance), each now carrying a `## Precedent` section linking
   the audit entries that exhibit the class.
-- Audits (6 shipped): burrowland x2 (BlockSec 2022, pre-D-017 summary depth), linear x2
-  (BlockSec 2022, Hacken 2024, pre-D-017 summary depth), sputnikdao2 storage-withdraw issue
-  (2026, pre-D-017 summary depth), potlock (Guvenkaya 2024, transcribed + classified per
-  D-017), near-intents (Guvenkaya 2025, curated, classified, paraphrase-only). The KB backlog
-  (maintainer's vault) holds ~57 unique public audits for catalogue expansion (D-017).
-- Postmortems (2 shipped): NEAR Intents deposit-notification exploit (Oct 2026) and RHEA
-  margin-trading slippage exploit (Apr 2026).
+- Audits (6 shipped, all in the classified table format with vector tags): burrowland x2
+  (BlockSec 2022), linear x2 (BlockSec 2022, Hacken 2024), sputnikdao2 storage-withdraw issue
+  (2026), potlock (Guvenkaya 2024, transcribed + per-finding blocks), near-intents (Guvenkaya
+  2025, curated, per-finding blocks, paraphrase-only). Per-finding blocks for the first five
+  entries are v0.2 polish. The KB backlog (maintainer's vault) holds ~57 unique public audits
+  for catalogue expansion (D-017).
+- Postmortems (2 shipped, both with pattern tags and cross-links): NEAR Intents
+  deposit-notification exploit (Oct 2026) and RHEA margin-trading slippage exploit (Apr 2026).
 - Registry: seeded 2026-11-12 - `contract.main.burrow.near`, `intents.near`,
   `v2.ref-finance.near`, each backed by shipped entries with honest coverage caveats.
 
