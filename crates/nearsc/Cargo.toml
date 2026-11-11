@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 description = "Deterministic security scanner for NEAR smart contracts"
+readme = "README.md"
+keywords = ["near", "security", "static-analysis", "smart-contracts", "audit"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 syn = { version = "2", features = ["full", "visit", "extra-traits"] }

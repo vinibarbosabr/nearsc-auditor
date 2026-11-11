@@ -1,0 +1,62 @@
+name: release
+
+# Build both binaries for the four v0.1 targets on a v* tag push, package
+# tar.gz + sha256 per target, and attach the artifacts to the GitHub release
+# created alongside the tag.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross-linker (aarch64 linux only)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build both binaries
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --locked --target ${{ matrix.target }} -p nearsc -p nearsc-mcp
+      - name: Package with checksum
+        shell: bash
+        run: |
+          staging="nearsc-${{ matrix.target }}"
+          mkdir -p "$staging"
+          cp "target/${{ matrix.target }}/release/nearsc" "target/${{ matrix.target }}/release/nearsc-mcp" "$staging"/
+          tar -czf "$staging.tar.gz" -C "$staging" .
+          shasum -a 256 "$staging.tar.gz" > "$staging.tar.gz.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nearsc-${{ matrix.target }}
+          path: |
+            nearsc-${{ matrix.target }}.tar.gz
+            nearsc-${{ matrix.target }}.tar.gz.sha256
+
+  attach:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: nearsc-*
+          merge-multiple: true
+      - name: Attach assets to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" nearsc-*.tar.gz nearsc-*.tar.gz.sha256 --clobber
