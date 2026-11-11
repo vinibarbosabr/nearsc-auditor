@@ -7,6 +7,7 @@
 pub mod arbitrary_promise_target;
 pub mod callback_not_private;
 pub mod callback_panic;
+pub mod common;
 pub mod deposit_refund_missing;
 pub mod init_ignore_state;
 pub mod insecure_randomness;

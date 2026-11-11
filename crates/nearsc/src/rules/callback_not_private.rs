@@ -5,8 +5,9 @@
 //! restricts them to the contract itself.
 
 use syn::visit::Visit;
-use syn::{Attribute, Expr, ImplItemFn, ItemFn};
+use syn::{Attribute, ImplItemFn, ItemFn};
 
+use super::common::callback_name;
 use super::{body_has_guard, last_segment_is, snippet_at, Rule};
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
@@ -115,28 +116,5 @@ impl<'ast> Visit<'ast> for Collector {
     fn visit_impl_item_fn(&mut self, item: &'ast ImplItemFn) {
         self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_impl_item_fn(self, item);
-    }
-}
-
-/// Extract the callback function name from the argument to `.then(...)`.
-/// Handles `.then(on_transfer)`, `.then(Self::on_transfer)`, and the near-sdk
-/// idiom `.then(Self::ext(env::current_account_id()).on_transfer(...))`.
-fn callback_name(expr: &Expr) -> Option<String> {
-    match expr {
-        Expr::Path(path) => path
-            .path
-            .segments
-            .last()
-            .map(|segment| segment.ident.to_string()),
-        Expr::MethodCall(call) => Some(call.method.to_string()),
-        Expr::Call(call) => match &*call.func {
-            Expr::Path(path) => path
-                .path
-                .segments
-                .last()
-                .map(|segment| segment.ident.to_string()),
-            _ => None,
-        },
-        _ => None,
     }
 }
