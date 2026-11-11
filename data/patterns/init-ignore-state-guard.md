@@ -62,6 +62,11 @@ separate access-control macro.
 Migrations deliberately invoked by a DAO through a multi-sig flow with the
 guard implemented in a wrapper; test-only helpers.
 
+## Precedent
+
+- [burrowland-blocksec-2022-03](../audits/burrowland-blocksec-2022-03.md): BUR-7, init
+  configuration not validated in `init` (Medium, fixed).
+
 ## References
 
 - [Updating contracts (NEAR docs)](https://docs.near.org/smart-contracts/release/upgrade.md)

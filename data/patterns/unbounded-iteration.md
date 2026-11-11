@@ -71,6 +71,11 @@ a small number and the cap is enforced on insert.
 - [near-intents-guvenkaya-2025-02](../audits/near-intents-guvenkaya-2025-02.md): GUV-2,
   unbounded per-account public-key iteration in `public_keys_of` enables a key-stuffing DoS
   (Low, not fixed).
+- [linear-blocksec-2022-04](../audits/linear-blocksec-2022-04.md): unlimited beneficiary
+  reward distribution and `epoch_update_rewards` fragility with unbounded beneficiary sets.
+- [near-intents-guvenkaya-2025-02](../audits/near-intents-guvenkaya-2025-02.md): GUV-2,
+  unbounded per-account public-key iteration in `public_keys_of` enables a key-stuffing DoS
+  (Low, not fixed).
 
 ## References
 

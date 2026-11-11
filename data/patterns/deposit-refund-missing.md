@@ -67,6 +67,12 @@ promise nor a storage/accounting write covers the deposit. Confidence
 Methods that always panic on failure (deposit auto-returns); flows that record
 the deposit as a user balance before returning.
 
+## Precedent
+
+- [sputnikdao2-storage-withdraw-2026-07](../audits/sputnikdao2-storage-withdraw-2026-07.md):
+  SPN-239, `storage_withdraw` transfers NEAR out without debiting the refundable balance -
+  the sibling failure where the refund claim is never consumed (public issue).
+
 ## References
 
 - [Refund NEAR tokens (NEAR docs)](https://docs.near.org/smart-contracts/security/cross-contract-calls/refunds.md)

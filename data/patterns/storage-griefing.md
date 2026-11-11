@@ -70,9 +70,20 @@ subsidize storage for a vetted allowlist.
 
 ## Precedent
 
+- [sputnikdao2-storage-withdraw-2026-07](../audits/sputnikdao2-storage-withdraw-2026-07.md):
+  SPN-239, `storage_withdraw` pays out the refundable storage credit without debiting it,
+  so the same credit is withdrawable repeatedly until the contract balance is gone (public
+  issue, open at filing).
 - [potlock-guvenkaya-2024-01](../audits/potlock-guvenkaya-2024-01.md): GUV-2, nested
   `UnorderedSet` under `payout_ids_by_project_id` never cleared before removal; payout state
   corrupts when payouts are set a second time (Critical, fixed).
+- [linear-hacken-2024-05](../audits/linear-hacken-2024-05.md): F-2024-1979, uncharged
+  deposit-account creation with measured ~0.004 NEAR contract-paid storage per account
+  (Medium, mitigation adopted).
+- [burrowland-blocksec-2022-02](../audits/burrowland-blocksec-2022-02.md): storage usage
+  computed wrong in liquidation and per-account updates (2 Medium, fixed).
+- [burrowland-blocksec-2022-03](../audits/burrowland-blocksec-2022-03.md): same class
+  re-confirmed post-fix-verification (2 Medium, fixed).
 
 ## References
 

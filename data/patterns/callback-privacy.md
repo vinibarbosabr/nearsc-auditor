@@ -67,6 +67,12 @@ Confidence `spec`.
 Deliberately public "callback-like" methods that are not promise callbacks
 (e.g. user-triggered settlement functions). The matcher sees shape, not intent.
 
+## Precedent
+
+- [near-intents-deposit-notification-2026-10](../postmortems/near-intents-deposit-notification-2026-10.md):
+  the exploited deposit-notification path lived entirely in the resolve-callback plumbing;
+  callback privacy/rolloff assumptions are the class this pattern documents.
+
 ## References
 
 - [Private callbacks (NEAR docs)](https://docs.near.org/smart-contracts/security/cross-contract-calls/callbacks.md)
