@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build nearsc from this checkout (crates.io still holds the 0.0.0 placeholder)
+      - name: Build nearsc from this checkout (dogfoods the PR tree; the crates.io install path is exercised by the action itself on release tags)
         run: cargo install --path crates/nearsc --locked
       - name: Scan the vulnerable example
         id: scan
