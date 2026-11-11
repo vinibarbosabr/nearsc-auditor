@@ -9,11 +9,14 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 description = "MCP server exposing nearsc to coding agents"
+readme = "README.md"
+keywords = ["near", "mcp", "mcp-server", "security", "agents"]
+categories = ["development-tools", "network-programming"]
 
 [dependencies]
 rmcp = { version = "3", features = ["transport-io"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std"] }
-nearsc = { path = "../nearsc" }
+nearsc = { version = "0.1.0", path = "../nearsc" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = "0.4"
