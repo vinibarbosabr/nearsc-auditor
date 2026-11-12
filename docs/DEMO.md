@@ -70,7 +70,9 @@ upgrade-path-unguarded with vulnerable/fixed code), `nearsc_audits`
 `/etc`, account id `WRAP.NEAR`) return structured tool errors. Capture the
 same flow on video from a fresh session.
 
-## Full demo video script (2:00)| Time | Shot | Voice-over / caption |
+## Full demo video script (2:00)
+
+| Time | Shot | Voice-over / caption |
 | --- | --- | --- |
 | 0:00–0:20 | Vulnerable callback snippet on screen | "NEAR contracts are async. A callback without `#[private]` can be called by anyone. This is one of the bugs that ships." |
 | 0:20–1:00 | Terminal: `nearsc scan`, findings table, then `--format html` and scroll | "One command. Deterministic findings. A report you can hand to a reviewer." |

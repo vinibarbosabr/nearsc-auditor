@@ -1,6 +1,6 @@
 # Contributing
 
-> **Status:** guide for the planned v0.1 (2026-11-09). Dev setup commands assume the workspace described in [ARCHITECTURE.md](ARCHITECTURE.md).
+> **Status:** guide for building nearsc (2026-11-09, shipped through v0.1.2). Dev setup commands assume the workspace described in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Dev setup
 

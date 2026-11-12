@@ -87,7 +87,7 @@ Returns file contents and instructions. It never writes to disk; the agent or us
 
 ## Install and configure
 
-From a checkout: `cargo run -p nearsc-mcp` (stdio) or `cargo install --path crates/nearsc-mcp --locked`. After the v0.1.0 release: `cargo install nearsc-mcp`.
+From a checkout: `cargo run -p nearsc-mcp` (stdio) or `cargo install --path crates/nearsc-mcp --locked`. Published on crates.io: `cargo install nearsc-mcp`.
 
 Claude Code (example):
 

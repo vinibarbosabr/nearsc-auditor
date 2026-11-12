@@ -120,7 +120,7 @@ Point your harness at [`nearsc-skill/SKILL.md`](nearsc-skill/SKILL.md) (opencode
 ## GitHub Action
 
 ```yaml
-- uses: vinibarbosabr/nearsc-auditor/action@v0.1.0
+- uses: vinibarbosabr/nearsc-auditor/action@v0.1.2
   with:
     path: ./contracts
     fail-on: high
@@ -177,7 +177,7 @@ Pipeline: walk `*.rs` → `syn::parse_file` → per-file context (fns, attrs, tr
 
 ## Baseline and hackathon work
 
-Per hackathon rules Q-003/Q-005: the [`pre-hackathon`](https://github.com/vinibarbosabr/nearsc-auditor/tree/pre-hackathon) tag marks the v1 prompt-stack baseline (June-July 2026). Everything above it on `feat/hackathon` is new work built during the NEAR Hackathon 2026 window (Nov 9-14, 2026) with AI coding agents as baseline-allowed tooling (design decisions in [docs/DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md)). The in-window diff: [`pre-hackathon...v0.1.0`](https://github.com/vinibarbosabr/nearsc-auditor/compare/pre-hackathon...v0.1.0). Tag `hackathon-submission` marks the exact state submitted to the hackathon (pushed before the submission POST on Nov 14).
+Per hackathon rules Q-003/Q-005: the [`pre-hackathon`](https://github.com/vinibarbosabr/nearsc-auditor/tree/pre-hackathon) tag marks the v1 prompt-stack baseline (June-July 2026). Everything above it on `feat/hackathon` is new work built during the NEAR Hackathon 2026 window (Nov 9-14, 2026) with AI coding agents as baseline-allowed tooling (design decisions in [docs/DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md)). The in-window diff: [`pre-hackathon...v0.1.2`](https://github.com/vinibarbosabr/nearsc-auditor/compare/pre-hackathon...v0.1.2). Tag `hackathon-submission` marks the exact state submitted to the hackathon (pushed before the submission POST on Nov 14).
 
 Process: built with agent-assisted audits; findings and their fixes are tracked as issues labeled [audit-finding](https://github.com/vinibarbosabr/nearsc-auditor/issues?q=label%3Aaudit-finding). How false positives are handled — classify, disclose, fix conservatively, never trade recall for quiet output — is codified in [docs/FALSE-POSITIVES.md](docs/FALSE-POSITIVES.md); community FP reports use the false-positive issue template.
 
