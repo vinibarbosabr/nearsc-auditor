@@ -128,6 +128,46 @@ fn fail_on_is_disarmed_when_filter_removes_the_trigger() {
 }
 
 #[test]
+fn confidence_spec_filters_heuristic_findings() {
+    // NS001 + NS002 are spec confidence; every other seed is heuristic.
+    // --min-confidence spec keeps only the spec findings.
+    nearsc()
+        .arg("scan")
+        .arg(example())
+        .args(["--min-confidence", "spec"])
+        .assert()
+        .code(0)
+        .stdout(contains("NS001"))
+        .stdout(contains("NS002"))
+        .stdout(contains("NS003").not())
+        .stdout(contains("NS006").not());
+}
+
+/// The text output carries the false-positive disclaimer for heuristic
+/// findings (the "noise with a clear disclaimer" contract).
+#[test]
+fn text_output_carries_the_heuristic_disclaimer() {
+    nearsc()
+        .arg("scan")
+        .arg(example())
+        .assert()
+        .code(0)
+        .stdout(contains("heuristic-confidence review hints"));
+}
+
+/// A clean scan prints no disclaimer (nothing to hedge).
+#[test]
+fn clean_scan_prints_no_disclaimer() {
+    nearsc()
+        .arg("scan")
+        .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/fixed-contract"))
+        .assert()
+        .code(0)
+        .stdout(contains("0 findings"))
+        .stdout(contains("heuristic-confidence review hints").not());
+}
+
+#[test]
 fn output_writes_file_and_keeps_stdout_empty() {
     let dir = tempfile::tempdir().expect("tempdir");
     let out = dir.path().join("report.txt");
@@ -366,7 +406,7 @@ fn sarif_output_is_valid_sarif_2_1_0() {
             .ends_with("vuln.rs"),
         "artifact uri is the relative path"
     );
-    assert_eq!(location["region"]["startLine"], 13);
+    assert_eq!(location["region"]["startLine"], 16);
 }
 
 /// Medium findings report as "warning"; low/info as "note" (plan section 4).

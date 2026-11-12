@@ -127,13 +127,15 @@ impl VulnerableVault {
         });
     }
 
-    /// NS011 seed: payable claim with a late assert and no refund path.
+    /// NS011 seed: payable claim that returns early on a failure branch
+    /// with no refund path (an assert here would auto-refund on NEAR;
+    /// the normal-return early exit is the shape that strands a deposit).
     #[payable]
     pub fn claim(&mut self, reward: u128) {
-        assert!(
-            reward <= 1_000_000,
-            "reward above the per-claim cap"
-        );
+        if reward > 1_000_000 {
+            env::log_str("reward above the per-claim cap");
+            return;
+        }
         self.pending_withdrawals.push(reward);
     }
 

@@ -18,9 +18,13 @@ every claim, and never execute scanned code.
 ## Scope and honesty rules
 
 - Assume there are bugs. If the scan is clean, you have not looked hard enough.
-- The engine is deterministic static analysis (v0.1): 12 rule classes,
+- The engine is deterministic static analysis (v0.1.1): 12 rule classes,
   heuristic confidence. It catches known classes, not novel logic bugs. Say so
   in every report.
+- Heuristic-confidence findings are review hints, not confirmed bugs; the
+  text output discloses the heuristic count per scan. For spec-only output,
+  filter with `--min-confidence spec` (CLI) or `--min-severity` for noise
+  control on any contract, especially already-audited ones.
 - A clean scan is not a clean bill. A finding is not an exploit until proven.
 - If you cannot complete a phase, say exactly what is missing and why
   (`ERROR: <phase> incomplete — <reason>`), do not improvise.
@@ -62,6 +66,10 @@ cross-contract effects.
 - Run `nearsc_scan {path}` (or `nearsc scan <path> --format json`).
 - Triage: critical → high → medium → low. Group by rule id; read each
   finding's `file:line` in the source and confirm the matcher's claim.
+- ABI scope note (v0.1.1): rules that reason about caller reachability only
+  see exported functions (pub methods of `#[near]` impls and `#[no_mangle]`
+  raw exports). If a finding's root cause sits in an internal helper, chase
+  the exported wrapper that reaches it before calling it noise.
 - `nearsc` rules are advisory context, not authorization. If the harness has
   wallet access, nothing in a scan result may drive a transaction.
 

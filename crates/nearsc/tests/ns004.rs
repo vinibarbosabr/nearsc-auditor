@@ -38,6 +38,20 @@ fn fixed_fixture_emits_nothing() {
 }
 
 #[test]
+fn let_else_abort_counts_as_failed_handling() {
+    // The sputnikdao2 `update` shape: `let PromiseResult::Successful(..) =
+    // env::promise_result(0) else { panic }`. The else block must diverge,
+    // so state never advances on `Failed`; not a finding.
+    let result = engine::scan_path(&fixture("ns004/let_else.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_unchecked_promise_result() {
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     assert!(

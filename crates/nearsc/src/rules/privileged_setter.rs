@@ -6,11 +6,17 @@
 //! predecessor/owner check, any account can call them. The naming convention
 //! reveals intent; a setter without a guard is a bug or a missing attribute
 //! either way, so the rule flags both for review.
+//!
+//! v0.1 scope: exported (ABI) functions only — `pub` methods of `#[near]`
+//! impl blocks and raw `#[no_mangle]` exports. Internal helpers and methods
+//! on non-contract types are not caller-reachable and are not flagged.
 
 use syn::visit::Visit;
-use syn::{Expr, ImplItemFn, ItemFn};
+use syn::{ImplItemFn, ItemFn};
 
+use super::common::body_writes_state;
 use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -36,14 +42,17 @@ impl Rule for PrivilegedSetter {
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            abi: &context.abi,
+            fns: Vec::new(),
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
 }
 
-#[derive(Default)]
-struct Collector {
+struct Collector<'a> {
+    abi: &'a AbiIndex,
     fns: Vec<FnInfo>,
 }
 
@@ -53,7 +62,7 @@ struct FnInfo {
     column: usize,
 }
 
-impl Collector {
+impl Collector<'_> {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
         self.fns
             .into_iter()
@@ -83,6 +92,12 @@ impl Collector {
         if !privileged_name {
             return;
         }
+        // ABI gate: internal helpers (`update_action_log` free fns,
+        // `Policy::update_*` plain impls, `pub(crate)`) are not
+        // caller-reachable.
+        if !self.abi.is_exported(ident) {
+            return;
+        }
         let private = attrs.iter().any(|attr| last_segment_is(attr, "private"));
         if private || body_has_guard(body) {
             return;
@@ -103,56 +118,7 @@ impl Collector {
     }
 }
 
-/// Does the body call `state_write` (directly or inside a macro)? Shared
-/// verdict shape with NS006: a direct write is that rule's finding, NS012
-/// defers to it to keep one access-control bug on one rule.
-fn body_writes_state(block: &syn::Block) -> bool {
-    #[derive(Default)]
-    struct WriteProbe {
-        writes: bool,
-    }
-
-    impl<'ast> Visit<'ast> for WriteProbe {
-        fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
-            if call.method == "state_write" {
-                self.writes = true;
-            }
-            syn::visit::visit_expr_method_call(self, call);
-        }
-
-        fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
-            if let Expr::Path(path) = &*call.func {
-                if let Some(segment) = path.path.segments.last() {
-                    if segment.ident == "state_write" {
-                        self.writes = true;
-                    }
-                }
-            }
-            syn::visit::visit_expr_call(self, call);
-        }
-
-        fn visit_macro(&mut self, mac: &'ast syn::Macro) {
-            if mac
-                .path
-                .segments
-                .last()
-                .is_some_and(|segment| segment.ident == "state_write")
-            {
-                self.writes = true;
-            }
-            if mac.tokens.to_string().contains("state_write") {
-                self.writes = true;
-            }
-            syn::visit::visit_macro(self, mac);
-        }
-    }
-
-    let mut probe = WriteProbe::default();
-    probe.visit_block(block);
-    probe.writes
-}
-
-impl<'ast> Visit<'ast> for Collector {
+impl<'ast> Visit<'ast> for Collector<'ast> {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
         self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_item_fn(self, item);

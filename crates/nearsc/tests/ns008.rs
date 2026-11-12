@@ -64,6 +64,33 @@ fn private_callback_writes_are_not_flagged() {
 }
 
 #[test]
+fn internal_and_non_near_impl_writes_are_not_flagged() {
+    // ABI gate: internal helpers and non-`#[near]` impls are not
+    // attacker-callable, so their insert shapes are not NS008 findings.
+    let result = engine::scan_path(&fixture("ns008/not_exported.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn owner_guarded_writes_are_not_flagged() {
+    // The sputnikdao2 `delegate`/`undelegate` shape: the write is gated on
+    // the trusted staking contract (a state-derived local), so storage is
+    // not attacker-funded.
+    let result = engine::scan_path(&fixture("ns008/owner_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn payable_deposit_stays_clean() {
     // deposit() stores under the caller's account but is #[payable]: the
     // storage pathway is paid for at call time. The example must not carry a

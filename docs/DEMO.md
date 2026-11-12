@@ -11,6 +11,9 @@ cd nearsc-auditor
 
 # 2. Scan (from source; `cargo install nearsc` lands with the v0.1.0 release)
 cargo run -p nearsc -- scan examples/vulnerable-contract
+
+# 3. Scan the patched twin: same surface, every seed fixed, zero findings
+cargo run -p nearsc -- scan examples/fixed-contract
 ```
 
 Expected shape of the output (real run captured 2026-11-12 from this tree; regenerate if the fixture changes):
@@ -23,20 +26,26 @@ HIGH     NS002 src/lib.rs:87 callback `on_deposit_complete` can be invoked by an
 MEDIUM   NS003 src/lib.rs:95 callback `on_withdraw_result` can panic on attacker-influenced input; handle failure explicitly instead of unwrap/expect/indexing
 HIGH     NS004 src/lib.rs:111 function `on_deposit_result` consumes a promise result without matching PromiseResult::Failed; state can advance on a failed cross-contract call
 CRITICAL NS006 src/lib.rs:119 function `set_state` writes contract state without an access-control guard; a caller can overwrite it. Add #[private] or assert predecessor == current_account_id / owner
-LOW      NS011 src/lib.rs:133 payable method `claim` can abort after the deposit attached and shows no refund path; refund the attached deposit on every early exit or document why funds may stay
-MEDIUM   NS009 src/lib.rs:143 `draw_winner` derives a value from block data or the caller's account; those inputs are predictable or influenceable, so lotteries/mints built on them can be steered. Use a commit-reveal or a random-seed oracle
-MEDIUM   NS008 src/lib.rs:151 public method `free_note` stores caller-controlled data without an attached deposit or storage check; charging for storage (or requiring it up front) keeps the contract's balance from being drained
-MEDIUM   NS007 src/lib.rs:157 public method `total_pending` loops over a collection that callers can grow without a bound; add pagination or cap the iteration before gas makes this method uncallable
-HIGH     NS010 src/lib.rs:164 public method `notify_receiver` builds a Promise::new target from caller input without an allowlist check; restrict targets to state-derived values or an allowlist before the contract pays or calls attacker-chosen accounts
-CRITICAL NS005 src/lib.rs:180 ignore_state init `migrate` is not access-controlled; any account can reinitialize contract state. Add #[private] or assert predecessor == current_account_id
+LOW      NS011 src/lib.rs:135 payable method `claim` can return early after the deposit attached and shows no refund path; refund the attached deposit on every early exit or document why funds may stay
+MEDIUM   NS009 src/lib.rs:145 `draw_winner` derives a value from block data or the caller's account; those inputs are predictable or influenceable, so lotteries/mints built on them can be steered. Use a commit-reveal or a random-seed oracle
+MEDIUM   NS008 src/lib.rs:153 public method `free_note` stores caller-controlled data without an attached deposit or storage check; charging for storage (or requiring it up front) keeps the contract's balance from being drained
+MEDIUM   NS007 src/lib.rs:159 public method `total_pending` loops over a collection that callers can grow without a bound; add pagination or cap the iteration before gas makes this method uncallable
+HIGH     NS010 src/lib.rs:166 public method `notify_receiver` builds a Promise::new target from caller input without an allowlist check; restrict targets to state-derived values or an allowlist before the contract pays or calls attacker-chosen accounts
+CRITICAL NS005 src/lib.rs:182 ignore_state init `migrate` is not access-controlled; any account can reinitialize contract state. Add #[private] or assert predecessor == current_account_id
 12 findings (critical 2, high 4, medium 5, low 1, info 0)
+disclaimer: 10 of 12 findings are heuristic-confidence review hints; expect false positives and confirm each one by hand
+```
+
+```text
+$ cargo run -p nearsc -- scan examples/fixed-contract
+0 findings (critical 0, high 0, medium 0, low 0, info 0)
 ```
 
 ```bash
-# 3. Human-readable report
+# 4. Human-readable report
 cargo run -p nearsc -- scan examples/vulnerable-contract --format html --output report.html
 
-# 4. Machine formats
+# 5. Machine formats
 cargo run -p nearsc -- scan examples/vulnerable-contract --format json
 cargo run -p nearsc -- scan examples/vulnerable-contract --format sarif
 ```
@@ -61,9 +70,7 @@ upgrade-path-unguarded with vulnerable/fixed code), `nearsc_audits`
 `/etc`, account id `WRAP.NEAR`) return structured tool errors. Capture the
 same flow on video from a fresh session.
 
-## Full demo video script (2:00)
-
-| Time | Shot | Voice-over / caption |
+## Full demo video script (2:00)| Time | Shot | Voice-over / caption |
 | --- | --- | --- |
 | 0:00–0:20 | Vulnerable callback snippet on screen | "NEAR contracts are async. A callback without `#[private]` can be called by anyone. This is one of the bugs that ships." |
 | 0:20–1:00 | Terminal: `nearsc scan`, findings table, then `--format html` and scroll | "One command. Deterministic findings. A report you can hand to a reviewer." |
@@ -76,6 +83,17 @@ Recording notes:
 - No slides, no intro animation. Terminal font large enough for mobile.
 - Cut dead time between commands; keep one continuous take per segment if possible.
 - Show real output, not mockups.
+
+## Hardened-codebase false-positive check
+
+A scanner that cries wolf on audited code is noise. The reference measurement is `sputnik-dao-contract/sputnikdao2` (exhaustively audited, in production for years):
+
+```bash
+git clone --depth 1 https://github.com/near-daos/sputnik-dao-contract /tmp/sputnik
+cargo run -p nearsc -- scan /tmp/sputnik/sputnikdao2/src
+```
+
+v0.1 emitted 19 findings (all false positives: internal helpers flagged as public, panics flagged as stuck deposits, let-else aborts flagged as unchecked). v0.1.1's ABI gate + rule fixes drop it to 2 findings, both deliberate review hints (see [RULES.md](RULES.md) "Verified-hardened reference"). The remaining noise is disclosed per scan: the text output prints how many findings are heuristic-confidence, and `--min-confidence spec` shows only findings grounded in documented NEAR semantics.
 
 ## Troubleshooting
 

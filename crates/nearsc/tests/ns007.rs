@@ -64,6 +64,19 @@ fn private_callback_loops_are_not_flagged() {
 }
 
 #[test]
+fn internal_and_non_near_impl_loops_are_not_flagged() {
+    // ABI gate: internal helpers and non-`#[near]` impls are not
+    // attacker-callable, so their loop shapes are not NS007 findings.
+    let result = engine::scan_path(&fixture("ns007/not_exported.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_the_unbounded_seed() {
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     let ns007 = result

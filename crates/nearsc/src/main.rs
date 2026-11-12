@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 
 use nearsc::engine;
-use nearsc::finding::Severity;
+use nearsc::finding::{Confidence, Severity};
 use nearsc::rules::CATALOG;
 
 #[derive(Parser)]
@@ -33,6 +33,9 @@ enum Command {
         /// Only report findings at or above this severity
         #[arg(long, value_enum)]
         min_severity: Option<SeverityArg>,
+        /// Only report findings at or above this confidence
+        #[arg(long, value_enum)]
+        min_confidence: Option<ConfidenceArg>,
         /// Comma-separated rule ids to run (e.g. ns004,ns010); default runs all
         #[arg(long)]
         only: Option<String>,
@@ -93,6 +96,22 @@ enum NetworkArg {
     Testnet,
 }
 
+/// Confidence levels accepted by `--min-confidence`.
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum ConfidenceArg {
+    Spec,
+    Heuristic,
+}
+
+impl From<ConfidenceArg> for Confidence {
+    fn from(value: ConfidenceArg) -> Self {
+        match value {
+            ConfidenceArg::Spec => Confidence::Spec,
+            ConfidenceArg::Heuristic => Confidence::Heuristic,
+        }
+    }
+}
+
 impl From<NetworkArg> for nearsc::rpc::Network {
     fn from(value: NetworkArg) -> Self {
         match value {
@@ -144,6 +163,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             format,
             fail_on,
             min_severity,
+            min_confidence,
             only,
             output,
         } => {
@@ -172,11 +192,25 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                     }
                 }
                 let result = engine::scan_path_only(&path, &requested);
-                return render_and_gate(result, format, fail_on, min_severity, output);
+                return render_and_gate(
+                    result,
+                    format,
+                    fail_on,
+                    min_severity,
+                    min_confidence,
+                    output,
+                );
             }
 
             let result = engine::scan_path(&path);
-            render_and_gate(result, format, fail_on, min_severity, output)
+            render_and_gate(
+                result,
+                format,
+                fail_on,
+                min_severity,
+                min_confidence,
+                output,
+            )
         }
         Command::Rules { command } => match command {
             RulesCommand::List { format } => {
@@ -285,20 +319,32 @@ fn write_report(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
         .map_err(|err| anyhow::anyhow!("cannot write {}: {err}", path.display()))
 }
 
-/// Render a finished scan (json, sarif, or text), then apply the `--fail-on`
-/// gate.
-/// Render a finished scan (json, sarif, or text), then apply the `--fail-on`
-/// gate.
+/// Render a finished scan (text, json, sarif, or html), then apply the
+/// `--fail-on` gate.
 fn render_and_gate(
     mut result: engine::ScanResult,
     format: String,
     fail_on: Option<SeverityArg>,
     min_severity: Option<SeverityArg>,
+    min_confidence: Option<ConfidenceArg>,
     output: Option<PathBuf>,
 ) -> anyhow::Result<u8> {
     if let Some(min) = min_severity {
         let min = Severity::from(min);
         engine::filter_min_severity(&mut result, min);
+    }
+    if let Some(min) = min_confidence {
+        let min = Confidence::from(min);
+        // Confidence ordering: spec > heuristic. Keep findings whose
+        // confidence is at or above the requested floor.
+        result
+            .findings
+            .retain(|finding| match (min, finding.confidence) {
+                (Confidence::Spec, Confidence::Spec) => true,
+                (Confidence::Spec, Confidence::Heuristic) => false,
+                (Confidence::Heuristic, _) => true,
+            });
+        result.summary.recount(&result.findings);
     }
     let rendered: anyhow::Result<String> = match format.as_str() {
         "json" => nearsc::report::render_json(&result),
@@ -307,6 +353,17 @@ fn render_and_gate(
         _ => {
             let mut rendered = String::new();
             nearsc::report::render_text(&mut rendered, &result);
+            let heuristic = result
+                .findings
+                .iter()
+                .filter(|finding| finding.confidence == Confidence::Heuristic)
+                .count();
+            if heuristic > 0 {
+                rendered.push_str(&format!(
+                    "disclaimer: {heuristic} of {} findings are heuristic-confidence review hints; expect false positives and confirm each one by hand\n",
+                    result.findings.len()
+                ));
+            }
             Ok(rendered.trim_end().to_string())
         }
     };
