@@ -1,6 +1,6 @@
 # Demo
 
-> **Status:** script for the v0.1 demo (2026-11-09, updated 2026-11-12; the agent demo is verified real). Commands marked planned land with the `v0.1.0` tag. The 60-second quickstart is the path a judge or screener follows.
+> **Status:** script for the v0.1 demo (2026-11-09, updated 2026-11-12; the agent demo is verified real). `nearsc` 0.1.2 is published on crates.io, so `cargo install nearsc` is the installed path. The 60-second quickstart is the path a judge or screener follows.
 
 ## 60-second quickstart (from source, real today)
 
@@ -9,7 +9,7 @@
 git clone https://github.com/vinibarbosabr/nearsc-auditor
 cd nearsc-auditor
 
-# 2. Scan (from source; `cargo install nearsc` lands with the v0.1.0 release)
+# 2. Scan (from source; or install the published 0.1.2 with `cargo install nearsc`)
 cargo run -p nearsc -- scan examples/vulnerable-contract
 
 # 3. Scan the patched twin: same surface, every seed fixed, zero findings
@@ -86,20 +86,20 @@ Recording notes:
 
 ## Hardened-codebase false-positive check
 
-A scanner that cries wolf on audited code is noise. The reference measurement is `sputnik-dao-contract/sputnikdao2` (exhaustively audited, in production for years):
+A scanner that cries wolf on audited code is noise. The reference measurement is the `sputnik-dao-contract` snapshot (sputnikdao2, factory2, staking, test-token: exhaustively audited, in production for years):
 
 ```bash
 git clone --depth 1 https://github.com/near-daos/sputnik-dao-contract /tmp/sputnik
-cargo run -p nearsc -- scan /tmp/sputnik/sputnikdao2/src
+cargo run -p nearsc -- scan /tmp/sputnik
 ```
 
-v0.1 emitted 19 findings (all false positives: internal helpers flagged as public, panics flagged as stuck deposits, let-else aborts flagged as unchecked). v0.1.1's ABI gate + rule fixes drop it to 2 findings, both deliberate review hints (see [RULES.md](RULES.md) "Verified-hardened reference"). The remaining noise is disclosed per scan: the text output prints how many findings are heuristic-confidence, and `--min-confidence spec` shows only findings grounded in documented NEAR semantics.
+The campaign is documented in [FALSE-POSITIVES.md](FALSE-POSITIVES.md): v0.1.0 emitted 29 findings on the snapshot, v0.1.1's ABI gate cut it to 6, and v0.1.2 reports 2 (critical 0, high 1, medium 1): the NS013 drain in `sputnik-staking` that the baseline rule set missed (the issue #239 class), plus one deliberately kept NS003 review hint in `sputnikdao2`. Both are labeled heuristic, the text output discloses the count, and `--min-confidence spec` reports zero. Recall went up while noise went down.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
-| `nearsc: command not found` | `cargo install nearsc` (after the v0.1.0 release) or use `cargo run -p nearsc -- scan <path>` |
+| `nearsc: command not found` | `cargo install nearsc` (0.1.2 is published) or use `cargo run -p nearsc -- scan <path>` |
 | No findings on your own contract | Check the path points at Rust sources; run `nearsc rules list` to see active rules |
 | Parse errors in the output | The file uses syntax syn cannot parse; findings elsewhere are still valid |
 | MCP tool not listed | Restart the harness after editing its MCP config; check the binary is on PATH; when running from a checkout, point the config at `cargo run -p nearsc-mcp` |
