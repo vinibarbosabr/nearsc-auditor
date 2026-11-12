@@ -18,7 +18,7 @@ every claim, and never execute scanned code.
 ## Scope and honesty rules
 
 - Assume there are bugs. If the scan is clean, you have not looked hard enough.
-- The engine is deterministic static analysis (v0.1.1): 12 rule classes,
+- The engine is deterministic static analysis (v0.1.2): 13 rule classes,
   heuristic confidence. It catches known classes, not novel logic bugs. Say so
   in every report.
 - Heuristic-confidence findings are review hints, not confirmed bugs; the
@@ -80,9 +80,12 @@ For each finding, in priority order:
 1. Pull the pattern doc: `nearsc_patterns {query: <rule_id>}`. It gives the
    why, the vulnerable pattern, and the fixed pattern.
 2. Decide: true positive / false positive / needs runtime test. Justify from
-   the actual code, not the matcher text. Heuristic rules (NS003–NS012) may
+   the actual code, not the matcher text. Heuristic rules (NS003–NS013) may
    flag safe code; check whether the guard the rule wants already exists in
    another form (`assert_one_yocto()` equivalent, manual predecessor check).
+   A false positive must be provable from source (the guard exists in another
+   spelling, or the assumed semantics do not apply) — the definitions and the
+   bar for proposing matcher changes are in docs/FALSE-POSITIVES.md.
 3. Pull real precedent: `nearsc_audits {query: <class keywords>}`. Cite at
    most one relevant public report or postmortem per finding class, with its
    confidence label (`verified-public`, `community`, `inferred`).

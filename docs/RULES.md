@@ -1,10 +1,10 @@
 # Rules
 
-> **Status:** v0.1.1 catalog (updated 2026-11-12). All 12 matchers are shipped and registered; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in `crates/nearsc/src/rules/mod.rs` keeps the table in sync. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. The `refs` a finding carries come from the matcher module; `Refs` lists below may add reading links.
+> **Status:** v0.1.2 catalog (updated 2026-11-12). All 13 matchers are shipped and registered; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in `crates/nearsc/src/rules/mod.rs` keeps the table in sync. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. The `refs` a finding carries come from the matcher module; `Refs` lists below may add reading links.
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
 
-**ABI gate (v0.1.1).** Rules that reason about what an arbitrary account can do — NS006, NS007, NS008, NS012 — report functions on the *callable surface* only: `pub` methods of `#[near]`/`#[near_bindgen]` impl blocks (trait impls included) and free functions exported raw through `#[no_mangle]` (any spelling, `#[unsafe(no_mangle)]` and `#[cfg_attr(target_arch = "wasm32", unsafe(no_mangle))]` included). `pub(crate)`, private, non-`#[near]` impls, free helpers, and `#[cfg(test)]` modules are internal: no attacker can name them, so flagging them there is definitionally a false positive. This was measured on sputnikdao2 (exhaustively audited): the gate plus the rule fixes below drop the scan from 19 findings to 2 (both legitimate review hints). Internal-helper bugs surface when the exported wrapper shares the shape; the cross-function call graph that routes them explicitly is v0.2 dataflow. The shared index is `crates/nearsc/src/abi.rs`; the text renderer prints a per-scan disclaimer for heuristic-confidence findings, and `--min-confidence spec` filters them out for a spec-only pass.
+**ABI gate (v0.1.1).** Rules that reason about what an arbitrary account can do — NS006, NS007, NS008, NS012, NS013 — report functions on the *callable surface* only: `pub` methods of `#[near]`/`#[near_bindgen]` impl blocks and methods of `#[near]` trait impls (inherited publicity), plus free functions exported raw through `#[no_mangle]` (any spelling, `#[unsafe(no_mangle)]` and `#[cfg_attr(target_arch = "wasm32", unsafe(no_mangle))]` included). `pub(crate)`, private, non-`#[near]` impls, free helpers, and `#[cfg(test)]` modules are internal: no attacker can name them, so flagging them there is definitionally a false positive. This was measured on sputnikdao2 (exhaustively audited): the gate plus the rule fixes below drop the scan from 19 findings to 2 (both legitimate review hints). Internal-helper bugs surface when the exported wrapper shares the shape; the cross-function call graph that routes them explicitly is v0.2 dataflow. The shared index is `crates/nearsc/src/abi.rs`; the text renderer prints a per-scan disclaimer for heuristic-confidence findings, and `--min-confidence spec` filters them out for a spec-only pass. How false positives are classified, disclosed, and safely fixed is codified in [FALSE-POSITIVES.md](FALSE-POSITIVES.md); the per-rule notes below are its evidence base.
 
 Machine-readable metadata is the `CATALOG` table in `crates/nearsc/src/rules/mod.rs` (shipped; the earlier plan for a `rules/<ID>.toml` layer was dropped, see [DESIGN-DECISIONS.md](DESIGN-DECISIONS.md) D-006). This page is the prose reference for detection notes and fix guidance; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in the same file keeps the table in sync with the registered matchers.
 
@@ -16,7 +16,7 @@ Machine-readable metadata is the `CATALOG` table in `crates/nearsc/src/rules/mod
 - **Severity:** high · **Confidence:** spec · **Tags:** nep-141, nep-171, authorization
 - **Detects:** implementations of `ft_transfer`, `ft_transfer_call`, `nft_transfer`, `nft_transfer_call` that do not enforce a 1-yoctoNEAR attached deposit (`assert_one_yocto()` or an equivalent check).
 - **Why it matters:** the NEP-141/171 transfer methods are specified to require exactly 1 yoctoNEAR so the call must be authorized with a full-access key. A function-call access key cannot attach a deposit, so the check prevents key-scoped abuse. Omitting it is a spec violation and a real authorization gap.
-- **Detection:** find trait impl methods with those names; check the body for `assert_one_yocto`, `attached_deposit() == 1`, or a shared helper call.
+- **Detection:** find trait impl methods with those names; check the body for `assert_one_yocto`, `attached_deposit() == 1`, or a shared helper call. A pure-delegation wrapper (`self.<token>.ft_transfer(...)` as the only body statement, field named like a standards token state) counts as guarded: the near-contract-standards implementation asserts the deposit internally.
 
 ```rust
 // vulnerable: any function-call key can move tokens
@@ -33,7 +33,7 @@ pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option
 }
 ```
 
-- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls. **Recognized guards:** `assert_one_yocto` (call or macro), an `attached_deposit` comparison against the literal `1` or a `from_yoctonear(1)`-style call (as a bare comparison, inside `assert!`/`assert_eq!`/`require!`, or as the condition of an `if` statement), or a same-file helper that performs one of those. 1-yocto comparisons inside `assert!`/`assert_eq!`/`require!` are recognized token-wise; a zero-yocto comparison (`!= from_yoctonear(0)`) is **not** a guard.
+- **False positives:** wrappers that call a helper which asserts the deposit; the matcher follows one level of local helper calls. **Recognized guards:** `assert_one_yocto` (call or macro), an `attached_deposit` comparison against the literal `1` or a `from_yoctonear(1)`-style call (as a bare comparison, inside `assert!`/`assert_eq!`/`require!`, or as the condition of an `if` statement), a same-file helper that performs one of those, or a pure delegation to a standards token state (`self.token.ft_transfer(...)`, single-statement body). 1-yocto comparisons inside `assert!`/`assert_eq!`/`require!` are recognized token-wise; a zero-yocto comparison (`!= from_yoctonear(0)`) is **not** a guard.
 - **Refs:** [NEP-141 core](https://nomicon.io/Standards/Tokens/FungibleToken/Core), [NEP-171 core](https://nomicon.io/Standards/Tokens/NonFungibleToken/Core), [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)
 
 ---
@@ -241,9 +241,21 @@ pub fn migrate() -> Self {
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** access-control
 - **Detects:** exported (ABI) methods named `set_*`, `update_*`, `pause_*`, `unpause_*`, `withdraw_*`, `admin_*` without a predecessor assertion or owner macro.
 - **Why it matters:** naming conventions reveal intent. A setter without a guard is either a bug or a missing macro; either way it deserves review.
-- **Detection:** name-prefix scan plus body check: `#[private]`, a manual `predecessor_account_id` + `current_account_id` guard, an `assert_self`-style macro, or an owner-style guard (the predecessor compared against contract state: a `self.` field, or a local bound from one — the `assert_eq!(env::predecessor_account_id(), self.owner)` shape the fix message itself recommends). Exported (ABI) functions only: `Policy::update_*`-style plain-impl methods and `pub(crate)` helpers are not caller-reachable and are skipped (the ABI gate note at the top). Bodies calling `state_write` are skipped here and reported by NS006 instead: one access-control bug, one rule.
+- **Detection:** name-prefix scan plus body check: `#[private]`, a manual `predecessor_account_id` + `current_account_id` guard, an `assert_self`-style macro, or an owner-style guard (the predecessor compared against contract state: a `self.` field, a `self.get_owner()`-style getter call, or a local bound from one — the `assert_eq!(env::predecessor_account_id(), self.owner)` shape the fix message itself recommends). A same-file guard helper call (`self.assert_owner()`) is credited when the helper's own body performs the predecessor-vs-state check and its name is guard-shaped (`assert_*`/`require_*`/`ensure_*`/`check_*`/`only_*`); a non-guard-named helper never clears the caller. Exported (ABI) functions only: `Policy::update_*`-style plain-impl methods and `pub(crate)` helpers are not caller-reachable and are skipped (the ABI gate note at the top). Bodies calling `state_write` are skipped here and reported by NS006 instead: one access-control bug, one rule.
 - **False positives:** intentional public configuration methods; the rule is medium and the message asks for review.
 - **Refs:** [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)
+
+---
+
+## NS013: balance-drain-transfer
+
+- **Status:** shipped · **Matcher:** `balance_drain`
+- **Severity:** high · **Confidence:** heuristic · **Tags:** funds-drain, refunds, nep-145
+- **Detects:** exported payout methods (`storage_withdraw`, `withdraw`) whose body transfers an amount derived from recorded state (`storage_available`, `*_balance`, `near_amount`-shaped readouts) without reducing the recorded balance in the same method: no collection re-book (`insert`/`save_user`/`remove`/`unregister`/`swap_remove`/`set` token), no direct `self`-collection write, no subtraction on a `self` field.
+- **Why it matters:** a payout that does not draw down the ledger it draws from is repeatable — the same credit can be withdrawn on every call until the contract's NEAR balance is exhausted, and any later accounting that refunds the recorded balance pays it twice. Real-world precedent: sputnik-dao-contract issue #239 (`storage_withdraw` never decremented `user.near_amount`).
+- **Detection:** endpoint-name gate + ABI gate + `#[private]` exclusion, then a body probe: a `Promise::new(...).transfer(...)` payout plus a balance-shaped readout with none of the decrement shapes above. Body-level `env::state_write` also clears the rule (whole-state rewrite re-books the ledger).
+- **False positives:** payout endpoints that legitimately keep the recorded balance (interest-bearing shares, escrow releases driven by other state); the rule is heuristic and the message asks to verify the ledger draw-down. The class needs dataflow (amount ↔ state field binding) for a precise verdict; that is v0.2.
+- **Refs:** [sputnik-dao-contract issue #239](https://github.com/near-daos/sputnik-dao-contract/issues/239), [NEP-145 storage management](https://nomicon.io/Standards/Tokens/FungibleToken/Storage)
 
 ---
 
@@ -268,8 +280,7 @@ Real output from `cargo run -p nearsc -- scan examples/vulnerable-contract --for
 }
 ```
 
-The full envelope holds 12 findings (2 critical, 4 high, 5 medium, 1 low) plus the header fields; see the scan envelope paragraph below.
-
+The full envelope (still 12 findings for the example, since NS013 targets the payout class and the example has no storage_withdraw) plus the header fields; see the scan envelope paragraph below.
 Scan envelope: `tool`, `version`, `target`, `summary` (counts per severity), `findings`, `parse_errors`. No `generated_at`: findings and the envelope are byte-stable for the same input (determinism contract). `generated_at` is not planned to return inside findings; if an envelope-level timestamp is ever added it will be CLI-layer only, opt-in.
 
 ## Verified-hardened reference (sputnikdao2)

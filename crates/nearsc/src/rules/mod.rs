@@ -5,6 +5,7 @@
 //! registry here is the source of truth for what actually runs.
 
 pub mod arbitrary_promise_target;
+pub mod balance_drain;
 pub mod callback_not_private;
 pub mod callback_panic;
 pub mod common;
@@ -158,6 +159,15 @@ pub const CATALOG: &[RuleMeta] = &[
         status: "shipped",
         refs: &["https://docs.near.org/protocol/accounts-contracts/access-keys.md"],
     },
+    RuleMeta {
+        id: "NS013",
+        title: "balance-drain-transfer",
+        severity: crate::finding::Severity::High,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: Some("balance_drain"),
+        status: "shipped",
+        refs: &["https://github.com/near-daos/sputnik-dao-contract/issues/239"],
+    },
 ];
 
 /// Every registered rule, in catalog order. `run_all` and the parity test
@@ -176,6 +186,7 @@ pub fn rules() -> &'static [&'static dyn Rule] {
         &insecure_randomness::InsecureRandomness,
         &arbitrary_promise_target::ArbitraryPromiseTarget,
         &deposit_refund_missing::DepositRefundMissing,
+        &balance_drain::BalanceDrainTransfer,
     ]
 }
 
@@ -216,107 +227,224 @@ pub fn snippet_at(context: &FileContext, line: usize) -> String {
 /// ...). Macro bodies are inspected as tokens because `syn` does not
 /// expand them.
 pub fn body_has_guard(block: &syn::Block) -> bool {
-    #[derive(Default)]
-    struct GuardVisitor {
-        predecessor: bool,
-        current: bool,
-        self_field: bool,
-        assert_self: bool,
-    }
+    body_has_guard_with(block, &[])
+}
 
-    impl<'ast> Visit<'ast> for GuardVisitor {
-        fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
-            if call.method == "predecessor_account_id" {
-                self.predecessor = true;
-            }
-            if call.method == "current_account_id" {
-                self.current = true;
-            }
-            syn::visit::visit_expr_method_call(self, call);
-        }
-
-        fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
-            if let Expr::Path(path) = &*call.func {
-                if let Some(segment) = path.path.segments.last() {
-                    if segment.ident == "predecessor_account_id" {
-                        self.predecessor = true;
-                    }
-                    if segment.ident == "current_account_id" {
-                        self.current = true;
-                    }
-                }
-            }
-            syn::visit::visit_expr_call(self, call);
-        }
-
-        fn visit_expr_field(&mut self, field: &'ast syn::ExprField) {
-            // `self.owner`, `self.staking_id`, ...: an owner-style guard
-            // compares the predecessor against a state field.
-            if is_self_base(&field.base) {
-                self.self_field = true;
-            }
-            syn::visit::visit_expr_field(self, field);
-        }
-
-        fn visit_macro(&mut self, mac: &'ast syn::Macro) {
-            if mac
-                .path
-                .segments
-                .last()
-                .is_some_and(|segment| segment.ident == "assert_self")
-            {
-                self.assert_self = true;
-            }
-            // Macro bodies are not visited as expressions by `syn`, so the
-            // guard mentions inside `assert_eq!`/`require!` are matched on
-            // the flattened token stream.
-            let mut pending: Vec<proc_macro2::TokenTree> = mac.tokens.clone().into_iter().collect();
-            while let Some(tree) = pending.pop() {
-                match tree {
-                    proc_macro2::TokenTree::Ident(ident) => {
-                        if ident == "predecessor_account_id" {
-                            self.predecessor = true;
-                        }
-                        if ident == "current_account_id" {
-                            self.current = true;
-                        }
-                        if ident == "self" {
-                            self.self_field = true;
-                        }
-                    }
-                    proc_macro2::TokenTree::Group(group) => {
-                        pending.extend(group.stream());
-                    }
-                    _ => {}
-                }
-            }
-            syn::visit::visit_macro(self, mac);
-        }
-    }
-
-    /// `self` (and field chains rooted at `self`): the base of a state
-    /// field access. `self` alone is a one-segment path in `syn`.
-    fn is_self_base(expr: &Expr) -> bool {
-        match expr {
-            Expr::Path(path) => {
-                path.path.segments.len() == 1 && path.path.segments[0].ident == "self"
-            }
-            Expr::Field(field) => is_self_base(&field.base),
-            Expr::Reference(reference) => is_self_base(&reference.expr),
-            _ => false,
-        }
-    }
-
+/// `body_has_guard` plus credit for delegated guard helpers.
+///
+/// A body that calls `self.assert_owner()` is guarded when the same file
+/// defines that helper and the helper's own body performs the
+/// predecessor-vs-self check. `helper_guards` is the same-file helper index
+/// built by [`guard_helper_names`]; callers pass the per-file list from
+/// `FileContext`. Delegation credit is name-gated to guard-sounding helper
+/// names so a plain state-writing helper called alongside cannot clear a
+/// body that never checks the caller.
+pub fn body_has_guard_with(block: &syn::Block, helper_guards: &[String]) -> bool {
     let mut visitor = GuardVisitor::default();
     visitor.visit_block(block);
     visitor.assert_self
         || (visitor.predecessor && visitor.current)
         || (visitor.predecessor && visitor.self_field)
+        || visitor
+            .self_helper
+            .is_some_and(|name| helper_guards.contains(&name))
+}
+
+/// Method names whose call reads the authorization identity from state:
+/// the `self.get_owner()` shape (a method call instead of a field read).
+/// A body that mentions `predecessor_account_id` and one of these calls is
+/// credited the same way as the `self.owner` field comparison.
+const OWNER_GETTER_METHODS: &[&str] = &[
+    "get_owner",
+    "owner",
+    "owner_id",
+    "get_admin",
+    "admin",
+    "admin_id",
+];
+
+/// Helper-name prefixes eligible for delegated-guard credit. The gate keeps
+/// the credit conservative: `self.save_user(...)` style helpers never clear
+/// a caller even when their bodies mention the predecessor.
+const HELPER_GUARD_PREFIXES: &[&str] = &["assert_", "require_", "ensure_", "check_", "only_"];
+
+/// Same-file helper methods whose bodies satisfy the base guard probe
+/// (`assert_owner()`-style authorization checks). Built once per file and
+/// stored on `FileContext`; consumed by [`body_has_guard_with`].
+pub fn guard_helper_names(ast: &syn::File) -> Vec<String> {
+    #[derive(Default)]
+    struct HelperVisitor {
+        helpers: Vec<String>,
+    }
+
+    impl<'ast> Visit<'ast> for HelperVisitor {
+        fn visit_item_impl(&mut self, item: &'ast syn::ItemImpl) {
+            for impl_item in &item.items {
+                if let syn::ImplItem::Fn(fn_item) = impl_item {
+                    let name = fn_item.sig.ident.to_string();
+                    // Name gate: only guard-sounding helpers earn index
+                    // entries. The body probe alone would also admit
+                    // bookkeeping fns that happen to mention the predecessor
+                    // beside a self field write (`save_user`, `set_caller`).
+                    if !HELPER_GUARD_PREFIXES
+                        .iter()
+                        .any(|prefix| name.starts_with(prefix))
+                    {
+                        continue;
+                    }
+                    if body_has_guard_with(&fn_item.block, &[]) {
+                        self.helpers.push(name);
+                    }
+                }
+            }
+            syn::visit::visit_item_impl(self, item);
+        }
+
+        fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
+            let name = item.sig.ident.to_string();
+            if !HELPER_GUARD_PREFIXES
+                .iter()
+                .any(|prefix| name.starts_with(prefix))
+            {
+                return;
+            }
+            if body_has_guard_with(&item.block, &[]) {
+                self.helpers.push(name);
+            }
+            syn::visit::visit_item_fn(self, item);
+        }
+    }
+
+    let mut visitor = HelperVisitor::default();
+    visitor.visit_file(ast);
+    let mut names: Vec<String> = visitor.helpers.into_iter().collect();
+    names.sort();
+    names.dedup();
+    names
+}
+
+#[derive(Default)]
+struct GuardVisitor {
+    predecessor: bool,
+    current: bool,
+    self_field: bool,
+    assert_self: bool,
+    /// Name of a `self.assert_*()`-style helper called by the body, when the
+    /// name is delegation-eligible; credited only when the helper is in the
+    /// same-file index.
+    self_helper: Option<String>,
+}
+
+impl<'ast> Visit<'ast> for GuardVisitor {
+    fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
+        if call.method == "predecessor_account_id" {
+            self.predecessor = true;
+        }
+        if call.method == "current_account_id" {
+            self.current = true;
+        }
+        // Owner-as-method-call: `assert_eq!(self.get_owner(),
+        // env::predecessor_account_id())` is the same owner guard as the
+        // `self.owner` field comparison, spelled through a getter.
+        if OWNER_GETTER_METHODS.contains(&call.method.to_string().as_str())
+            && is_self_rooted(&call.receiver)
+        {
+            self.self_field = true;
+        }
+        // Delegated guard shape: a bare-`self` method call whose name sounds
+        // like an authorization check. Credited only when the helper is
+        // registered in the same-file index (see `body_has_guard_with`).
+        if self.self_helper.is_none()
+            && is_self_path(&call.receiver)
+            && HELPER_GUARD_PREFIXES
+                .iter()
+                .any(|prefix| call.method.to_string().starts_with(prefix))
+        {
+            self.self_helper = Some(call.method.to_string());
+        }
+        syn::visit::visit_expr_method_call(self, call);
+    }
+
+    fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
+        if let Expr::Path(path) = &*call.func {
+            if let Some(segment) = path.path.segments.last() {
+                if segment.ident == "predecessor_account_id" {
+                    self.predecessor = true;
+                }
+                if segment.ident == "current_account_id" {
+                    self.current = true;
+                }
+            }
+        }
+        syn::visit::visit_expr_call(self, call);
+    }
+
+    fn visit_expr_field(&mut self, field: &'ast syn::ExprField) {
+        // `self.owner`, `self.staking_id`, ...: an owner-style guard
+        // compares the predecessor against a state field.
+        if is_self_rooted(&field.base) {
+            self.self_field = true;
+        }
+        syn::visit::visit_expr_field(self, field);
+    }
+
+    fn visit_macro(&mut self, mac: &'ast syn::Macro) {
+        if mac
+            .path
+            .segments
+            .last()
+            .is_some_and(|segment| segment.ident == "assert_self")
+        {
+            self.assert_self = true;
+        }
+        // Macro bodies are not visited as expressions by `syn`, so the
+        // guard mentions inside `assert_eq!`/`require!` are matched on
+        // the flattened token stream.
+        let mut pending: Vec<proc_macro2::TokenTree> = mac.tokens.clone().into_iter().collect();
+        while let Some(tree) = pending.pop() {
+            match tree {
+                proc_macro2::TokenTree::Ident(ident) => {
+                    if ident == "predecessor_account_id" {
+                        self.predecessor = true;
+                    }
+                    if ident == "current_account_id" {
+                        self.current = true;
+                    }
+                    if ident == "self" {
+                        self.self_field = true;
+                    }
+                }
+                proc_macro2::TokenTree::Group(group) => {
+                    pending.extend(group.stream());
+                }
+                _ => {}
+            }
+        }
+        syn::visit::visit_macro(self, mac);
+    }
+}
+
+/// `self` (and field/method chains rooted at `self`): the receiver of a
+/// state field access or owner getter. `self` alone is a one-segment
+/// path in `syn`.
+fn is_self_rooted(expr: &Expr) -> bool {
+    match expr {
+        Expr::Path(_) => is_self_path(expr),
+        Expr::Field(field) => is_self_rooted(&field.base),
+        Expr::Reference(reference) => is_self_rooted(&reference.expr),
+        Expr::MethodCall(call) => is_self_rooted(&call.receiver),
+        _ => false,
+    }
+}
+
+/// Bare `self` (a one-segment path in `syn`).
+fn is_self_path(expr: &Expr) -> bool {
+    matches!(expr, Expr::Path(path) if path.path.segments.len() == 1 && path.path.segments[0].ident == "self")
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{body_has_guard, rules, CATALOG};
+    use super::{body_has_guard, body_has_guard_with, guard_helper_names, rules, CATALOG};
 
     #[test]
     fn detects_assert_eq_guard() {
@@ -370,6 +498,114 @@ mod tests {
             );
         });
         assert!(body_has_guard(&block));
+    }
+
+    #[test]
+    fn detects_owner_getter_method_guard() {
+        // The factory-2 shape: the owner identity comes from a getter method
+        // call (`self.get_owner()`), not a field read. Same guard, different
+        // spelling; the getter is self-rooted.
+        let block: syn::Block = syn::parse_quote!({
+            assert_eq!(
+                self.get_owner(),
+                env::predecessor_account_id(),
+                "Must be owner"
+            );
+        });
+        assert!(body_has_guard(&block));
+    }
+
+    #[test]
+    fn non_owner_getters_are_not_guard_credit() {
+        // An arbitrary self method call without a guard-sounding name does
+        // not satisfy the predecessor comparison when spelled as an explicit
+        // expression (no macro, so no token-mention path).
+        let block: syn::Block = syn::parse_quote!({
+            if self.compute_fee() == env::predecessor_account_id() {
+                env::panic_str("unexpected");
+            }
+        });
+        assert!(!body_has_guard(&block));
+    }
+
+    #[test]
+    fn delegated_guard_helper_satisfies_via_index() {
+        // `self.assert_owner()` alone is not a guard; with the same-file
+        // helper index (the helper body does the predecessor check) it is.
+        let file: syn::File = syn::parse_quote! {
+            impl Fixture {
+                fn assert_owner(&self) {
+                    assert_eq!(
+                        self.get_owner(),
+                        env::predecessor_account_id(),
+                        "Must be owner"
+                    );
+                }
+            }
+        };
+        let helpers = guard_helper_names(&file);
+        assert_eq!(helpers, vec!["assert_owner".to_string()]);
+
+        let caller_block: syn::Block = syn::parse_quote!({
+            self.assert_owner();
+            self.fee = fee;
+        });
+        assert!(!body_has_guard(&caller_block), "no index: not credited");
+        assert!(
+            body_has_guard_with(&caller_block, &helpers),
+            "same-file helper: credited"
+        );
+    }
+
+    #[test]
+    fn non_guard_sounding_helper_never_credits() {
+        // Name-gated: a helper whose body mentions the predecessor but whose
+        // name is not guard-shaped stays uncredited, and so does its caller.
+        // `let caller = ...; self.x = caller;` is the bookkeeping shape; the
+        // assignment makes the helper body pass the base probe via the
+        // self-field mention, so the helper name would appear in the index
+        // unless the name gate rejects it.
+        let file: syn::File = syn::parse_quote! {
+            impl Fixture {
+                fn save_user(&mut self, user: AccountId) {
+                    let caller = env::predecessor_account_id();
+                    self.owner = caller;
+                }
+            }
+        };
+        let helpers = guard_helper_names(&file);
+        assert!(
+            !helpers.iter().any(|name| name == "save_user"),
+            "save_user must be name-gated out of the index: {helpers:?}"
+        );
+
+        let caller_block: syn::Block = syn::parse_quote!({
+            self.save_user(user);
+        });
+        assert!(!body_has_guard_with(&caller_block, &helpers));
+    }
+
+    #[test]
+    fn unrelated_self_method_call_is_not_delegation() {
+        // A bare-`self` call with a non-guard name (e.g. `self.refresh()`)
+        // never registers as a delegated guard candidate. Note: the body
+        // below also writes the predecessor into a self field
+        // (`self.owner = ...`), which the base probe credits by design
+        // (predecessor + self mention). To isolate the delegation channel,
+        // this test pins only that `refresh` produces no helper entry, and
+        // the caller-with-no-other-mentions body stays unguarded.
+        let file: syn::File = syn::parse_quote! {
+            impl Fixture {
+                fn refresh(&self) {}
+            }
+        };
+        let helpers = guard_helper_names(&file);
+        assert!(helpers.is_empty(), "{helpers:?}");
+
+        let caller_block: syn::Block = syn::parse_quote!({
+            self.refresh();
+        });
+        assert!(!body_has_guard_with(&caller_block, &helpers));
     }
 
     #[test]

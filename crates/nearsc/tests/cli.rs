@@ -303,6 +303,7 @@ fn rules_list_prints_the_full_catalog() {
         .code(0)
         .stdout(contains("NS001"))
         .stdout(contains("NS012"))
+        .stdout(contains("NS013"))
         .stdout(contains("shipped"));
 }
 

@@ -15,7 +15,7 @@ use syn::visit::Visit;
 use syn::{ImplItemFn, ItemFn};
 
 use super::common::body_writes_state;
-use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use super::{body_has_guard_with, last_segment_is, snippet_at, Rule};
 use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
@@ -44,6 +44,7 @@ impl Rule for PrivilegedSetter {
     fn check(&self, context: &FileContext) -> Vec<Finding> {
         let mut collector = Collector {
             abi: &context.abi,
+            context,
             fns: Vec::new(),
         };
         collector.visit_file(&context.ast);
@@ -53,6 +54,8 @@ impl Rule for PrivilegedSetter {
 
 struct Collector<'a> {
     abi: &'a AbiIndex,
+    /// The owning `FileContext`, for the delegated-guard helper index.
+    context: &'a FileContext,
     fns: Vec<FnInfo>,
 }
 
@@ -84,7 +87,13 @@ impl Collector<'_> {
             .collect()
     }
 
-    fn push_fn(&mut self, ident: &syn::Ident, attrs: &[syn::Attribute], body: &syn::Block) {
+    fn push_fn(
+        &mut self,
+        context: &FileContext,
+        ident: &syn::Ident,
+        attrs: &[syn::Attribute],
+        body: &syn::Block,
+    ) {
         let name = ident.to_string();
         let privileged_name = SETTER_PREFIXES
             .iter()
@@ -99,7 +108,9 @@ impl Collector<'_> {
             return;
         }
         let private = attrs.iter().any(|attr| last_segment_is(attr, "private"));
-        if private || body_has_guard(body) {
+        // Delegated-guard credit: a `self.assert_owner()` helper defined in
+        // the same file (the sputnikdao-factory2 shape) counts as a guard.
+        if private || body_has_guard_with(body, &context.guard_helpers) {
             return;
         }
         // Direct state writes fall under NS006 (critical, whole-function
@@ -118,14 +129,14 @@ impl Collector<'_> {
     }
 }
 
-impl<'ast> Visit<'ast> for Collector<'ast> {
+impl<'ast> Visit<'ast> for Collector<'_> {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
-        self.push_fn(&item.sig.ident, &item.attrs, &item.block);
+        self.push_fn(self.context, &item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_item_fn(self, item);
     }
 
     fn visit_impl_item_fn(&mut self, item: &'ast ImplItemFn) {
-        self.push_fn(&item.sig.ident, &item.attrs, &item.block);
+        self.push_fn(self.context, &item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_impl_item_fn(self, item);
     }
 }

@@ -39,6 +39,18 @@ CI runs the same three commands plus a dogfood scan of `examples/vulnerable-cont
 - Every finding has a fix and a reference.
 - Heuristic rules say so and ask for review in the message.
 - No rule that cannot be tested.
+- A matcher relaxation ships a negative-control fixture: same shape, real bug, still flags. No negative control, no merge.
+
+## Fix a false positive
+
+Read [FALSE-POSITIVES.md](FALSE-POSITIVES.md) first — the policy and the safety bar live there. Short version:
+
+1. **Reproduce and verify.** The finding must be provably safe from the source: the guard exists in a spelling the matcher misses, or the assumed semantics do not apply.
+2. **Root-cause the recognizer.** Read the matcher (`crates/nearsc/src/rules/<id>.rs`) and name the gap. No fix without a named gap.
+3. **Credit only source-visible evidence.** Attributes, same-file helper bodies, explicit comparisons. A name-based heuristic must be corroborated by a second anchor.
+4. **Ship the negative control.** A fixture shaped like the FP but carrying the real bug must keep flagging; the FP shape itself goes clean.
+5. **Run the oracles.** `cargo test` green; `examples/vulnerable-contract` still emits its seeds; `examples/fixed-contract` stays clean; the hardened-reference scan (sputnikdao2) loses no finding triaged true or partial.
+6. **Document it.** The rule's "False positives" note in [RULES.md](RULES.md) gains the newly recognized guard shape.
 
 ## Add a KB entry
 
@@ -67,6 +79,7 @@ fix: stable sort for findings on same line
 ## Review checklist (for maintainers)
 
 - [ ] Fixture pair proves the rule works and does not over-trigger.
+- [ ] Any matcher relaxation carries a negative-control fixture ([FALSE-POSITIVES.md](FALSE-POSITIVES.md) safety bar).
 - [ ] CATALOG and matchers are in sync (parity test passes).
 - [ ] RULES.md updated.
 - [ ] No network, no execution, no secrets in the change.

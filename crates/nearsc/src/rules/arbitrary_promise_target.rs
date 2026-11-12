@@ -19,7 +19,7 @@ use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
 use super::common::body_token_text;
-use super::{body_has_guard, snippet_at, Rule};
+use super::{body_has_guard, last_segment_is, snippet_at, Rule};
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -28,6 +28,13 @@ pub struct ArbitraryPromiseTarget;
 const RULE_ID: &str = "NS010";
 const TITLE: &str = "Promise target chosen by the caller";
 const REFS: &[&str] = &["https://docs.near.org/smart-contracts/anatomy/actions"];
+
+/// Parameter names that carry the predecessor this same contract recorded
+/// when the initiating method ran (`create` serializes it into the callback
+/// args; the callback refunds it on failure). The name binding — not the
+/// dataflow — is what distinguishes the refund path from a caller-chosen
+/// target in the v0.1 heuristic.
+const RECORDED_PREDECESSOR_PARAMS: &[&str] = &["predecessor_account_id"];
 
 impl Rule for ArbitraryPromiseTarget {
     fn id(&self) -> &'static str {
@@ -74,7 +81,13 @@ impl Collector {
             .collect()
     }
 
-    fn push_fn(&mut self, ident: &syn::Ident, sig: &syn::Signature, body: &syn::Block) {
+    fn push_fn(
+        &mut self,
+        ident: &syn::Ident,
+        attrs: &[syn::Attribute],
+        sig: &syn::Signature,
+        body: &syn::Block,
+    ) {
         let params: Vec<String> = sig
             .inputs
             .iter()
@@ -95,13 +108,31 @@ impl Collector {
             return;
         }
         let mut probe = PromiseProbe {
-            params,
+            params: params.clone(),
             first_target: None,
+            first_target_param: None,
+            recorded_aliases: Vec::new(),
         };
         probe.visit_block(body);
         let Some((line, column)) = probe.first_target else {
             return;
         };
+        // Callback refund exemption: on a `#[private]` callback, a promise
+        // target bound to the recorded-predecessor parameter (or one of its
+        // aliases) is the refund path the contract built in the initiating
+        // call, not a caller-chosen target (the sputnikdao-factory2
+        // `on_create` shape).
+        let is_callback = attrs.iter().any(|attr| last_segment_is(attr, "private"));
+        let is_recorded_predecessor = probe
+            .first_target_param
+            .as_deref()
+            .is_some_and(|name| RECORDED_PREDECESSOR_PARAMS.contains(&name))
+            || probe
+                .first_target_param
+                .is_some_and(|name| probe.recorded_aliases.contains(&name));
+        if is_callback && is_recorded_predecessor {
+            return;
+        }
         // An allowlist mention or a full owner guard keeps the method off
         // this rule (heuristic release valve, same shape as NS002/NS012).
         let tokens = body_token_text(body);
@@ -122,21 +153,27 @@ impl Collector {
 struct PromiseProbe {
     params: Vec<String>,
     first_target: Option<(usize, usize)>,
+    /// Name of the parameter (or param alias) the first flagged target is
+    /// bound to; consumed by the callback refund exemption.
+    first_target_param: Option<String>,
+    /// `let` aliases bound to a recorded-predecessor parameter.
+    recorded_aliases: Vec<String>,
 }
 
 impl PromiseProbe {
-    /// Is this expression a method parameter or a `let` binding that was
-    /// assigned one? `let` bindings from parameters are tracked in
-    /// `params` as the walk descends.
-    fn is_param(&self, expr: &Expr) -> bool {
+    /// The parameter (or param alias) this expression resolves to, when it
+    /// does. `let` bindings from parameters are tracked in `params` as the
+    /// walk descends.
+    fn param_name(&self, expr: &Expr) -> Option<String> {
         match expr {
             Expr::Path(path) => path
                 .path
                 .segments
                 .last()
-                .is_some_and(|segment| self.params.contains(&segment.ident.to_string())),
-            Expr::Reference(reference) => self.is_param(&reference.expr),
-            _ => false,
+                .map(|segment| segment.ident.to_string())
+                .filter(|name| self.params.contains(name)),
+            Expr::Reference(reference) => self.param_name(&reference.expr),
+            _ => None,
         }
     }
 }
@@ -157,9 +194,10 @@ impl<'ast> Visit<'ast> for PromiseProbe {
         };
         if is_promise_new && self.first_target.is_none() {
             if let Some(arg) = call.args.first() {
-                if self.is_param(arg) {
+                if let Some(param) = self.param_name(arg) {
                     let start = call.func.span().start();
                     self.first_target = Some((start.line, start.column + 1));
+                    self.first_target_param = Some(param);
                 }
             }
         }
@@ -180,9 +218,10 @@ impl<'ast> Visit<'ast> for PromiseProbe {
             };
             if receiver_is_promise {
                 if let Some(arg) = call.args.first() {
-                    if self.is_param(arg) {
+                    if let Some(param) = self.param_name(arg) {
                         let start = call.method.span().start();
                         self.first_target = Some((start.line, start.column + 1));
+                        self.first_target_param = Some(param);
                     }
                 }
             }
@@ -192,19 +231,26 @@ impl<'ast> Visit<'ast> for PromiseProbe {
 
     fn visit_stmt(&mut self, stmt: &'ast syn::Stmt) {
         if let syn::Stmt::Local(local) = stmt {
-            // Track `let alias = <param>;` so aliases stay flagged.
+            // Track `let alias = <param>;` so aliases stay flagged, and
+            // remember the alias so the callback refund exemption can
+            // resolve `Promise::new(alias)` back to the recorded predecessor
+            // parameter.
             if let Some(init) = &local.init {
-                if self.is_param(&init.expr) {
-                    match &local.pat {
-                        syn::Pat::Ident(pat_ident) => {
-                            self.params.push(pat_ident.ident.to_string());
+                if let Some(source) = self.param_name(&init.expr) {
+                    let alias = match &local.pat {
+                        syn::Pat::Ident(pat_ident) => Some(pat_ident.ident.to_string()),
+                        syn::Pat::Path(pat_path) => pat_path
+                            .path
+                            .segments
+                            .last()
+                            .map(|segment| segment.ident.to_string()),
+                        _ => None,
+                    };
+                    if let Some(alias) = alias {
+                        if RECORDED_PREDECESSOR_PARAMS.contains(&source.as_str()) {
+                            self.recorded_aliases.push(alias.clone());
                         }
-                        syn::Pat::Path(pat_path) => {
-                            if let Some(segment) = pat_path.path.segments.last() {
-                                self.params.push(segment.ident.to_string());
-                            }
-                        }
-                        _ => {}
+                        self.params.push(alias);
                     }
                 }
             }
@@ -215,12 +261,12 @@ impl<'ast> Visit<'ast> for PromiseProbe {
 
 impl<'ast> Visit<'ast> for Collector {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
-        self.push_fn(&item.sig.ident, &item.sig, &item.block);
+        self.push_fn(&item.sig.ident, &item.attrs, &item.sig, &item.block);
         syn::visit::visit_item_fn(self, item);
     }
 
     fn visit_impl_item_fn(&mut self, item: &'ast ImplItemFn) {
-        self.push_fn(&item.sig.ident, &item.sig, &item.block);
+        self.push_fn(&item.sig.ident, &item.attrs, &item.sig, &item.block);
         syn::visit::visit_impl_item_fn(self, item);
     }
 }

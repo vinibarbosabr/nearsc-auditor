@@ -86,4 +86,14 @@
 
 **Consequences:** callbacks that rely on `#[callback]`'s panic-on-failure are not findings; reviewers reading such code should ask whether a silent panic mid-flow is acceptable there. The amendment and its date are recorded in docs/RULES.md per rule.
 
+## D-011: recall over precision — the false-positive policy
+
+**Context:** the first live test against a real hardened contract (sputnik-dao-contract, git `5434a59`, 2026-11-12) produced 29 findings: 25 defensible false positives, 3 partial true positives — and, the headline, the strongest real bug in the snapshot (a repeatable `storage_withdraw` drain) sat outside the rule set entirely. The temptation after such a scan is to quiet the matcher until the output looks clean.
+
+**Decision (2026-11-12, with Vini):** nearsc optimizes for recall and discloses precision. False positives are handled by confidence labels, the per-scan heuristic disclaimer, per-rule FP documentation, and matcher corrections that clear a conservative safety bar — never by deleting rules, disabling detection, or exempting shapes without a negative-control fixture proving a real bug in the same shape still fires. Full policy: [FALSE-POSITIVES.md](FALSE-POSITIVES.md).
+
+**Why:** a security scanner's failure modes are asymmetric. A false positive costs minutes and is disclosed as such; a false negative can cost a treasury. The sputnik campaign is the worked example: FP count on the snapshot went 25 → 0 across v0.1.0 → v0.1.2 while the rule set *gained* the class (NS013) that catches the drain the baseline found only by hand.
+
+**Consequences:** the scanner stays intentionally noisy on some hardened code, and the disclaimer carries that contract with the user. Every FP fix ships a negative control; the hardened-reference regression (a real finding may never be dropped) gates merges. Contributor PRs that relax a matcher without a negative control are rejected by the review checklist.
+
 > **Numbering note (2026-11-11):** this page's D-numbers are this page's own edition of the decision log; the working log in the vault is longer and does not mirror these ids one-to-one. The scheduling records in D-006 (TOML + embedding land Thursday morning, before the MCP build) and D-008 (registry ships empty; seeding follows the audit KB) are the authoritative versions of those two decisions.

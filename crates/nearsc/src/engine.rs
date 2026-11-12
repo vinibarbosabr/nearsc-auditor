@@ -25,6 +25,10 @@ pub struct FileContext {
     /// exports). Rules that report "any account can call this" only report
     /// exported functions; internal helpers are v0.2 call-graph targets.
     pub abi: crate::abi::AbiIndex,
+    /// Same-file helpers whose bodies satisfy the manual guard probe
+    /// (`assert_owner()`-style authorization checks). Rules credit a body
+    /// calling one of these as guarded; see `rules::body_has_guard_with`.
+    pub guard_helpers: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -162,11 +166,13 @@ fn scan_with(
         match syn::parse_file(&source) {
             Ok(ast) => {
                 let abi = crate::abi::AbiIndex::build(&ast);
+                let guard_helpers = rules::guard_helper_names(&ast);
                 let context = FileContext {
                     file: rel,
                     source,
                     ast,
                     abi,
+                    guard_helpers,
                 };
                 findings.extend(check(&context));
             }
