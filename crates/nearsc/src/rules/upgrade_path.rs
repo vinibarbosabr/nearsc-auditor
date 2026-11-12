@@ -3,14 +3,20 @@
 //! Direct state writes bypass the storage model and are the final step of an
 //! upgrade. If a caller reaches one without `#[private]` or an explicit
 //! predecessor assertion, they own the contract. v0.1 flags direct
-//! `state_write` call sites only; migrate-deserialization reachability lands
-//! with dataflow analysis in v0.2.
+//! `state_write` call sites in *exported* (ABI) functions only; internal
+//! helpers and migrate-deserialization reachability land with dataflow
+//! analysis in v0.2.
+//!
+//! Exemptions: `#[private]`, a manual predecessor/current-account or
+//! owner-field guard, and deposit-funded writes (the caller pays the storage
+//! cost of the state they cause, `store_blob`-style).
 
 use syn::visit::Visit;
 use syn::{ImplItemFn, ItemFn};
 
-use super::common::body_writes_state;
+use super::common::{body_token_text, body_writes_state};
 use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -20,20 +26,34 @@ const RULE_ID: &str = "NS006";
 const TITLE: &str = "Unguarded state write reachable from a public function";
 const REFS: &[&str] = &["https://github.com/near/near-sdk-rs"];
 
+/// Body mentions that make a state write deposit-funded (shared vocabulary
+/// with NS008; a caller-covered write is not a contract-funded takeover).
+const STORAGE_GUARD_MARKERS: &[&str] = &[
+    "attached_deposit",
+    "storage_byte_cost",
+    "storage_usage",
+    "storage_min_balance",
+    "required_deposit",
+    "unregister",
+];
+
 impl Rule for UpgradePath {
     fn id(&self) -> &'static str {
         RULE_ID
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            abi: &context.abi,
+            fns: Vec::new(),
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
 }
 
-#[derive(Default)]
-struct Collector {
+struct Collector<'a> {
+    abi: &'a AbiIndex,
     fns: Vec<FnInfo>,
 }
 
@@ -43,7 +63,7 @@ struct FnInfo {
     column: usize,
 }
 
-impl Collector {
+impl Collector<'_> {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
         self.fns
             .into_iter()
@@ -66,12 +86,26 @@ impl Collector {
     }
 
     fn push_fn(&mut self, ident: &syn::Ident, attrs: &[syn::Attribute], body: &syn::Block) {
+        // ABI gate: only an exported `pub` method (of a `#[near]` impl) or a
+        // raw `#[no_mangle]` export is callable by an arbitrary account.
+        if !self.abi.is_exported(ident) {
+            return;
+        }
         let has_private = attrs.iter().any(|attr| last_segment_is(attr, "private"));
         if has_private || body_has_guard(body) {
             return;
         }
         let writes_state = body_writes_state(body);
         if !writes_state {
+            return;
+        }
+        // A write the caller pays for (storage costs charged against the
+        // attached deposit) is managed storage, not a takeover primitive.
+        let tokens = body_token_text(body);
+        if STORAGE_GUARD_MARKERS
+            .iter()
+            .any(|marker| tokens.split_ascii_whitespace().any(|tn| tn == *marker))
+        {
             return;
         }
         let start = ident.span().start();
@@ -83,7 +117,7 @@ impl Collector {
     }
 }
 
-impl<'ast> Visit<'ast> for Collector {
+impl<'ast> Visit<'ast> for Collector<'ast> {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
         self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_item_fn(self, item);

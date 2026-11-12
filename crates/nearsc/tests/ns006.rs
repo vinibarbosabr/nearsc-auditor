@@ -41,6 +41,34 @@ fn fixed_fixture_emits_nothing() {
 }
 
 #[test]
+fn internal_and_non_near_impl_helpers_are_not_flagged() {
+    // ABI gate: an attacker cannot reach internal helpers, so their
+    // state-write shape is not an NS006 finding (v0.2 call graph will
+    // route these to their exported wrappers).
+    let result = engine::scan_path(&fixture("ns006/not_exported.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn deposit_funded_state_writes_are_not_flagged() {
+    // The store_blob shape: the caller prepays the exact storage cost of
+    // the write, so the direct state write is contract-managed storage,
+    // not a takeover primitive.
+    let result = engine::scan_path(&fixture("ns006/prepaid_state_write.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_unguarded_state_write() {
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     assert!(

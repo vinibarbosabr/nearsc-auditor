@@ -5,12 +5,18 @@
 //! collection which users can grow eventually becomes uncallable: the loop
 //! itself exhausts the gas, locking whatever the method guards (funds,
 //! governance, migrations). Pagination or a bounded window is the fix.
+//!
+//! v0.1 scope: exported (ABI) functions only — `pub` methods of `#[near]`
+//! impl blocks and raw `#[no_mangle]` exports. Internal helpers loop only
+//! where their exported callers let them, so they are the v0.2 call graph's
+//! targets.
 
 use syn::spanned::Spanned;
 use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
 use super::{last_segment_is, snippet_at, Rule};
+use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -29,14 +35,17 @@ impl Rule for UnboundedIteration {
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            abi: &context.abi,
+            fns: Vec::new(),
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
 }
 
-#[derive(Default)]
-struct Collector {
+struct Collector<'a> {
+    abi: &'a AbiIndex,
     fns: Vec<FnInfo>,
 }
 
@@ -46,7 +55,7 @@ struct FnInfo {
     column: usize,
 }
 
-impl Collector {
+impl Collector<'_> {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
         self.fns
             .into_iter()
@@ -69,6 +78,11 @@ impl Collector {
     }
 
     fn push_fn(&mut self, ident: &syn::Ident, attrs: &[syn::Attribute], body: &syn::Block) {
+        // ABI gate: only an exported `pub` method (or a raw `#[no_mangle]`
+        // export) is callable by an arbitrary account.
+        if !self.abi.is_exported(ident) {
+            return;
+        }
         let private = attrs.iter().any(|attr| last_segment_is(attr, "private"));
         let init = attrs.iter().any(|attr| last_segment_is(attr, "init"));
         if private || init {
@@ -128,7 +142,7 @@ fn is_iteration_method(method: &syn::Ident) -> bool {
     ITERATION_METHODS.contains(&method.to_string().as_str())
 }
 
-impl<'ast> Visit<'ast> for Collector {
+impl<'ast> Visit<'ast> for Collector<'ast> {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
         self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_item_fn(self, item);

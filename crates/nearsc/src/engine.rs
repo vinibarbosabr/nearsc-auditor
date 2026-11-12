@@ -20,6 +20,11 @@ pub struct FileContext {
     pub file: String,
     pub source: String,
     pub ast: syn::File,
+    /// Which `fn`s in this file are on the contract's callable surface
+    /// (`pub` methods of `#[near]` impl blocks and raw `#[no_mangle]`
+    /// exports). Rules that report "any account can call this" only report
+    /// exported functions; internal helpers are v0.2 call-graph targets.
+    pub abi: crate::abi::AbiIndex,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -156,10 +161,12 @@ fn scan_with(
         };
         match syn::parse_file(&source) {
             Ok(ast) => {
+                let abi = crate::abi::AbiIndex::build(&ast);
                 let context = FileContext {
                     file: rel,
                     source,
                     ast,
+                    abi,
                 };
                 findings.extend(check(&context));
             }

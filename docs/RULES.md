@@ -1,8 +1,10 @@
 # Rules
 
-> **Status:** v0.1 catalog (updated 2026-11-12). All 12 matchers are shipped and registered; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in `crates/nearsc/src/rules/mod.rs` keeps the table in sync. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. The `refs` a finding carries come from the matcher module; `Refs` lists below may add reading links.
+> **Status:** v0.1.1 catalog (updated 2026-11-12). All 12 matchers are shipped and registered; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in `crates/nearsc/src/rules/mod.rs` keeps the table in sync. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. The `refs` a finding carries come from the matcher module; `Refs` lists below may add reading links.
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
+
+**ABI gate (v0.1.1).** Rules that reason about what an arbitrary account can do — NS006, NS007, NS008, NS012 — report functions on the *callable surface* only: `pub` methods of `#[near]`/`#[near_bindgen]` impl blocks (trait impls included) and free functions exported raw through `#[no_mangle]` (any spelling, `#[unsafe(no_mangle)]` and `#[cfg_attr(target_arch = "wasm32", unsafe(no_mangle))]` included). `pub(crate)`, private, non-`#[near]` impls, free helpers, and `#[cfg(test)]` modules are internal: no attacker can name them, so flagging them there is definitionally a false positive. This was measured on sputnikdao2 (exhaustively audited): the gate plus the rule fixes below drop the scan from 19 findings to 2 (both legitimate review hints). Internal-helper bugs surface when the exported wrapper shares the shape; the cross-function call graph that routes them explicitly is v0.2 dataflow. The shared index is `crates/nearsc/src/abi.rs`; the text renderer prints a per-scan disclaimer for heuristic-confidence findings, and `--min-confidence spec` filters them out for a spec-only pass.
 
 Machine-readable metadata is the `CATALOG` table in `crates/nearsc/src/rules/mod.rs` (shipped; the earlier plan for a `rules/<ID>.toml` layer was dropped, see [DESIGN-DECISIONS.md](DESIGN-DECISIONS.md) D-006). This page is the prose reference for detection notes and fix guidance; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in the same file keeps the table in sync with the registered matchers.
 
@@ -42,7 +44,7 @@ pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option
 - **Severity:** high · **Confidence:** spec · **Tags:** async, callbacks, access-control
 - **Detects:** a function used as a `.then()` callback, or annotated `#[callback]`/`#[callback_result]`/`#[callback_unwrap]`/`#[callback_vec]`, that is not annotated `#[private]` and has no recognized manual guard.
 - **Why it matters:** any account can call a public method. Without `#[private]` (which asserts `predecessor == current_account_id`), an attacker can invoke the callback directly and fake a successful cross-contract result, corrupting state or releasing funds.
-- **Detection:** collect callback names from `.then(...)` call sites and `#[callback*]` attributes **in the same file**; resolve against functions defined in that file; pass when the function has `#[private]`, mentions both `predecessor_account_id` and `current_account_id` in its body, or invokes an `assert_self`-style macro. Cross-file callback resolution is on the v0.2 roadmap.
+- **Detection:** collect callback names from `.then(...)` call sites and `#[callback*]` attributes **in the same file**; resolve against functions defined in that file; pass when the function has `#[private]`, mentions both `predecessor_account_id` and `current_account_id` in its body, an owner-style guard (predecessor compared against contract state), or invokes an `assert_self`-style macro. Cross-file callback resolution is on the v0.2 roadmap.
 
 ```rust
 // vulnerable
@@ -104,7 +106,7 @@ pub fn on_swap(&mut self) {
 - **Detects:** functions that consume a promise result (call `env::promise_result` or name `PromiseResult`) without a `PromiseResult::Failed` match or `if let ... Failed` arm.
 - **Amended scope (2026-11-10):** `#[callback*]`-deserialized parameters are **not** flagged. The near-sdk macros unwrap and panic on failure by design; that is documented semantics, not a finding, and flagging it would mark idiomatic code. Review callbacks that rely on the macro behavior where a silent failure corrupts state.
 - **Why it matters:** cross-contract calls fail. Code that assumes success updates state on a lie; code that panics on failure can brick flows. Both are common and both are detectable.
-- **Detection:** functions whose bodies call `env::promise_result` or mention `PromiseResult` without a `Failed` arm in a `match` or `if let`.
+- **Detection:** functions whose bodies call `env::promise_result` or mention `PromiseResult` without a `Failed` arm in a `match` or `if let`. A `let ... else` binding on a `PromiseResult` counts as failure handling when the else-branch aborts (`panic!`, `env::panic_str`, `abort`): the let-else else-block must diverge, so state never advances on a failed result. This is the sputnikdao2 `update` shape (`let PromiseResult::Successful(data) = env::promise_result(0) else { env::panic_str("ERR_NO_RESULT") }`), which v0.1 flagged and v0.1.1 credits.
 
 ```rust
 #[private]
@@ -166,9 +168,9 @@ pub fn migrate() -> Self {
 
 - **Status:** shipped · **Matcher:** `upgrade_path`
 - **Severity:** critical · **Confidence:** heuristic · **Tags:** upgrade, access-control
-- **Detects:** direct `state_write` / `env::state_write` calls, or migrate deserialization patterns, reachable from a public method without an owner or self check.
+- **Detects:** direct `state_write` / `env::state_write` calls, or migrate deserialization patterns, reachable from an exported (ABI) function without an owner or self check.
 - **Why it matters:** state writes bypass the normal storage model and are the last step of an upgrade. If an attacker can reach one, they own the contract.
-- **Detection:** call-site scan for state write APIs; walk up to the enclosing public function; check for predecessor/owner assertions. **v0.1 scope:** direct `state_write` call sites in unguarded functions only; migrate-deserialization reachability lands with dataflow analysis in v0.2.
+- **Detection:** call-site scan for state write APIs; walk up to the enclosing public function; check for predecessor/owner assertions. **v0.1.1 scope:** direct `state_write` call sites in exported (ABI) functions only, with three exemptions: `#[private]`, a manual guard (predecessor/current, owner-field comparison), and deposit-funded writes — a body that charges the caller for the storage it writes (`attached_deposit`, `storage_byte_cost`, `storage_usage`, ... markers) is contract-managed storage, not a takeover primitive (the sputnikdao2 `store_blob` shape). Migrate-deserialization reachability lands with dataflow analysis in v0.2.
 - **Refs:** [near-sdk-rs](https://github.com/near/near-sdk-rs)
 
 ---
@@ -179,7 +181,7 @@ pub fn migrate() -> Self {
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** gas, griefing
 - **Detects:** `for` loops over `self`-rooted collection fields in public methods (direct, borrowed, or via `.iter()`/`.into_iter()`/`.keys()`/`.values()`/`.iter_from()`/`.drain()`) where the collection can grow from user input, without pagination bounds.
 - **Why it matters:** NEAR gas is finite per receipt. An unbounded loop that grows with users eventually makes the method uncallable, locking funds or governance actions.
-- **Detection:** AST walk of `for` loops in public, non-`#[init]`, non-`#[private]` methods. v0.1 scope: the iterable must be rooted at `self` (`self.field`, `&self.field`, `self.field.iter()`, chains of such calls) so the reported loop is over state callers can grow; loops over function-local collections are not flagged. A bounded window (`.skip(offset).take(limit)`) removes the finding, as does manual `break` bounding.
+- **Detection:** AST walk of `for` loops in exported (ABI), non-`#[init]`, non-`#[private]` methods (see the ABI gate note at the top). v0.1 scope: the iterable must be rooted at `self` (`self.field`, `&self.field`, `self.field.iter()`, chains of such calls) so the reported loop is over state callers can grow; loops over function-local collections are not flagged. A bounded window (`.skip(offset).take(limit)`) removes the finding, as does manual `break` bounding.
 - **False positives:** a self-collection whose growth is capped by ingestion limits elsewhere; the message asks for pagination evidence before you dismiss it.
 - **Refs:** [NEAR docs](https://docs.near.org/)
 
@@ -189,9 +191,9 @@ pub fn migrate() -> Self {
 
 - **Status:** shipped · **Matcher:** `storage_griefing`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** storage, griefing
-- **Detects:** `insert`/`set`/`insert_id`/`insert_checked` calls rooted at `self` collections in public, non-`#[payable]` methods whose body never mentions `attached_deposit` or a storage-management check.
+- **Detects:** `insert`/`set`/`insert_id`/`insert_checked` calls rooted at `self` collections in exported (ABI), non-`#[payable]` methods whose body never mentions `attached_deposit` or a storage-management check.
 - **Why it matters:** storage costs NEAR. A method that stores attacker-controlled data for free lets an attacker drain the contract's balance through storage stake.
-- **Detection:** AST scan for collection writes rooted at `self` (LookupMap, UnorderedMap, TreeMap, Vector, LookupSet method shapes) inside public methods. Exemptions: `#[private]` callbacks, `#[init]`, `#[payable]` (deposit accompanies every call), and bodies mentioning `attached_deposit`, `storage_usage`, `storage_min_balance`, `unregister`, `storage_byte_cost`, or `required_deposit` (token-based scan, macro groups included). Writes to function-local maps are never flagged: only persistent `self.` state is contract storage.
+- **Detection:** AST scan for collection writes rooted at `self` (LookupMap, UnorderedMap, TreeMap, Vector, LookupSet method shapes) inside exported methods. Exemptions: `#[private]` callbacks, `#[init]`, `#[payable]` (deposit accompanies every call), a caller-actor guard (`body_has_guard`: predecessor checked against the contract or a trusted state field — the sputnikdao2 `delegate`/`undelegate` shape), and bodies mentioning `attached_deposit`, `storage_usage`, `storage_min_balance`, `unregister`, `storage_byte_cost`, or `required_deposit` (token-based scan, macro groups included). Writes to function-local maps are never flagged: only persistent `self.` state is contract storage.
 - **False positives:** collections whose growth is self-funded by an internal accounting elsewhere; the message asks for the deposit path before you dismiss it.
 - **Refs:** [NEAR docs](https://docs.near.org/)
 
@@ -215,7 +217,7 @@ pub fn migrate() -> Self {
 - **Severity:** high · **Confidence:** heuristic · **Tags:** promises, access-control
 - **Detects:** `Promise::new(<param>)` where the target is a method parameter (or a `let`-bound alias of one), without an allowlist check.
 - **Why it matters:** an attacker-controlled promise target lets a caller make the contract call arbitrary contracts, often combined with attached funds.
-- **Detection:** the walk collects `Promise::new` call sites (2-segment paths, macro shapes included) and checks the argument against the method's parameter names (plus `let`-bound aliases). Recognized release valves: a body mention of `allowlist`/`allowed`/`contains` (token scan, macro groups included) or a full owner guard (`body_has_guard`). Literal targets, `env::current_account_id()`, and state-derived fields pass because they are not parameters.
+- **Detection:** the walk collects `Promise::new` call sites (2-segment paths, macro shapes included) and checks the argument against the method's parameter names (plus `let`-bound aliases). Recognized release valves: a body mention of `allowlist`/`allowed`/`contains` (token scan, macro groups included) or a full owner guard (`body_has_guard`, owner-style comparisons included). Literal targets, `env::current_account_id()`, and state-derived fields pass because they are not parameters.
 - **False positives:** escrows and routers whose entire purpose is to pay caller-specified accounts with caller-supplied funds; NEP-141 `ft_transfer`-style methods that move only the earned balance: pair the flag with the authorization facts before you dismiss it.
 - **Refs:** [NEAR docs](https://docs.near.org/smart-contracts/anatomy/actions)
 
@@ -225,11 +227,11 @@ pub fn migrate() -> Self {
 
 - **Status:** shipped · **Matcher:** `deposit_refund_missing`
 - **Severity:** low · **Confidence:** heuristic · **Tags:** deposits, refunds
-- **Detects:** `#[payable]` functions whose body can abort (`assert!`/`require!`/`panic`/`expect` shapes) with no refund-shaped mention (`refund`, `transfer`, `attached_deposit`).
-- **Why it matters:** attached deposits can get stuck in the contract when a validation fails after the deposit is accepted. Users lose funds silently.
-- **Detection:** `#[payable]` gate, then an abort-shape probe (assert/require/panic macro tokens, `expect`/`panic` calls) and a refund-marker token scan (`refund`, `transfer`, `attached_deposit`) over the same body, macro groups included. A body without abort shapes cannot strand a deposit mid-flow and passes.
+- **Detects:** `#[payable]` exported (ABI) functions whose body takes a non-panicking early exit (`return`-shaped) with no refund-shaped mention (`refund`, `transfer`).
+- **Why it matters:** a panicking receipt is atomic — the attached deposit auto-returns to the caller — so `assert!`/`require!`/`panic!`/`expect` aborts can never strand funds. What strands a deposit is an early `return` (or a no-op branch that falls through) without refunding: the NEAR sits in the contract with no accounting entry. **Amended 2026-11-12:** v0.1 flagged abort shapes and produced four false positives on sputnikdao2 (`bounty_claim`, `bounty_done`, `register_delegation`, `add_proposal` — all panic-gated, all bond-accounted). The matcher now encodes the documented semantics: panics exempt, early returns flagged.
+- **Detection:** `#[payable]` gate + ABI gate, then a `return`-expression probe (any depth) and a refund-marker token scan (`refund`, `transfer`) over the same body. A body without an early return cannot strand a deposit mid-flow and passes.
 - **False positives:** methods that intentionally keep the deposit on failure by design (e.g. registration fees); the message asks for the refund path or the documented intent.
-- **Refs:** [NEAR docs](https://docs.near.org/smart-contracts/anatomy/actions)
+- **Refs:** [Refund NEAR tokens (NEAR docs)](https://docs.near.org/smart-contracts/security/cross-contract-calls/refunds.md), [Transfers and actions (NEAR docs)](https://docs.near.org/smart-contracts/anatomy/actions)
 
 ---
 
@@ -237,9 +239,9 @@ pub fn migrate() -> Self {
 
 - **Status:** shipped · **Matcher:** `privileged_setter`
 - **Severity:** medium · **Confidence:** heuristic · **Tags:** access-control
-- **Detects:** public methods named `set_*`, `update_*`, `pause_*`, `unpause_*`, `withdraw_*`, `admin_*` without a predecessor assertion or owner macro.
+- **Detects:** exported (ABI) methods named `set_*`, `update_*`, `pause_*`, `unpause_*`, `withdraw_*`, `admin_*` without a predecessor assertion or owner macro.
 - **Why it matters:** naming conventions reveal intent. A setter without a guard is either a bug or a missing macro; either way it deserves review.
-- **Detection:** name-prefix scan plus body check: `#[private]`, a manual `predecessor_account_id` + `current_account_id` guard, or an `assert_self`-style macro exempts. Bodies calling `state_write` are skipped here and reported by NS006 instead: one access-control bug, one rule.
+- **Detection:** name-prefix scan plus body check: `#[private]`, a manual `predecessor_account_id` + `current_account_id` guard, an `assert_self`-style macro, or an owner-style guard (the predecessor compared against contract state: a `self.` field, or a local bound from one — the `assert_eq!(env::predecessor_account_id(), self.owner)` shape the fix message itself recommends). Exported (ABI) functions only: `Policy::update_*`-style plain-impl methods and `pub(crate)` helpers are not caller-reachable and are skipped (the ABI gate note at the top). Bodies calling `state_write` are skipped here and reported by NS006 instead: one access-control bug, one rule.
 - **False positives:** intentional public configuration methods; the rule is medium and the message asks for review.
 - **Refs:** [NEAR access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)
 
@@ -269,6 +271,15 @@ Real output from `cargo run -p nearsc -- scan examples/vulnerable-contract --for
 The full envelope holds 12 findings (2 critical, 4 high, 5 medium, 1 low) plus the header fields; see the scan envelope paragraph below.
 
 Scan envelope: `tool`, `version`, `target`, `summary` (counts per severity), `findings`, `parse_errors`. No `generated_at`: findings and the envelope are byte-stable for the same input (determinism contract). `generated_at` is not planned to return inside findings; if an envelope-level timestamp is ever added it will be CLI-layer only, opt-in.
+
+## Verified-hardened reference (sputnikdao2)
+
+The scanner's false-positive posture is measured against `sputnik-dao-contract/sputnikdao2` (the NEAR DAO contract, exhaustively audited). Baseline (v0.1): 19 findings, all false positives or review hints. After the ABI gate and the rule fixes above: 2 findings, both legitimate review hints the tool deliberately keeps:
+
+- **NS008 `act_proposal`** — the insert rewrites a proposal entry whose storage was bond-funded in `add_proposal`; proving that needs cross-function dataflow (v0.2). The caller must also pass the policy permission check, so this is defense-in-depth noise, not a vulnerability.
+- **NS003 `on_proposal_callback`** — `.expect("ERR_NO_PROPOSAL")` in a `#[private]` self-scheduled callback. The proposal exists by construction, except under a theoretical remove-mid-flight race that auditors accepted. Kept deliberately: this is the "noise with a clear disclaimer" class.
+
+Rule-to-fix mapping measured on that scan: NS012 lost 4 (ABI gate on `update_action_log`/`Policy::update_*`/`Proposal::update_votes`), NS008 lost 5 (ABI gate on `internal_*` + owner-guard credit on `delegate`/`undelegate`), NS011 lost 4 (panic auto-refund semantics), NS006 lost 1 (deposit-funded `store_blob`), NS007 lost 1 (internal `get_user_roles`), NS004 lost 1 (let-else abort in `update`).
 
 ## Adding a rule
 

@@ -52,6 +52,33 @@ fn manual_guard_satisfies_the_rule() {
 }
 
 #[test]
+fn internal_and_non_near_impl_setters_are_not_flagged() {
+    // ABI gate: internal helpers and non-`#[near]` impls are not
+    // attacker-callable, so setter-named shapes there are not NS012
+    // findings (the sputnikdao2 `Policy::update_*` shape).
+    let result = engine::scan_path(&fixture("ns012/not_exported.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn owner_field_guard_satisfies_the_rule() {
+    // The guard shape the NS012 message recommends: predecessor compared
+    // against contract state (the owner field).
+    let result = engine::scan_path(&fixture("ns012/owner_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
 fn state_write_body_defers_to_ns006() {
     let result = engine::scan_path(&fixture("ns012/defers_to_ns006.rs"));
     assert!(

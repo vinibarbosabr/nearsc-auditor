@@ -4,6 +4,7 @@
 //! It never executes scanned code, never calls the network, and never uses an
 //! LLM in the scan path.
 
+pub mod abi;
 pub mod engine;
 pub mod finding;
 pub mod kb;

@@ -35,7 +35,7 @@ cd nearsc-auditor
 cargo run -p nearsc -- scan examples/vulnerable-contract
 ```
 
-Expected output (captured 2026-11-13 from this tree):
+Expected output (captured 2026-11-12 from this tree):
 
 ```text
 HIGH     NS001 src/lib.rs:58 transfer method `ft_transfer` does not enforce the 1-yoctoNEAR attached deposit; add assert_one_yocto() or an equivalent check (NEP-141/171)
@@ -44,13 +44,21 @@ HIGH     NS002 src/lib.rs:87 callback `on_deposit_complete` can be invoked by an
 MEDIUM   NS003 src/lib.rs:95 callback `on_withdraw_result` can panic on attacker-influenced input; handle failure explicitly instead of unwrap/expect/indexing
 HIGH     NS004 src/lib.rs:111 function `on_deposit_result` consumes a promise result without matching PromiseResult::Failed; state can advance on a failed cross-contract call
 CRITICAL NS006 src/lib.rs:119 function `set_state` writes contract state without an access-control guard; a caller can overwrite it. Add #[private] or assert predecessor == current_account_id / owner
-LOW      NS011 src/lib.rs:133 payable method `claim` can abort after the deposit attached and shows no refund path; refund the attached deposit on every early exit or document why funds may stay
-MEDIUM   NS009 src/lib.rs:143 `draw_winner` derives a value from block data or the caller's account; those inputs are predictable or influenceable, so lotteries/mints built on them can be steered. Use a commit-reveal or a random-seed oracle
-MEDIUM   NS008 src/lib.rs:151 public method `free_note` stores caller-controlled data without an attached deposit or storage check; charging for storage (or requiring it up front) keeps the contract's balance from being drained
-MEDIUM   NS007 src/lib.rs:157 public method `total_pending` loops over a collection that callers can grow without a bound; add pagination or cap the iteration before gas makes this method uncallable
-HIGH     NS010 src/lib.rs:164 public method `notify_receiver` builds a Promise::new target from caller input without an allowlist check; restrict targets to state-derived values or an allowlist before the contract pays or calls attacker-chosen accounts
-CRITICAL NS005 src/lib.rs:180 ignore_state init `migrate` is not access-controlled; any account can reinitialize contract state. Add #[private] or assert predecessor == current_account_id
+LOW      NS011 src/lib.rs:135 payable method `claim` can return early after the deposit attached and shows no refund path; refund the attached deposit on every early exit or document why funds may stay
+MEDIUM   NS009 src/lib.rs:145 `draw_winner` derives a value from block data or the caller's account; those inputs are predictable or influenceable, so lotteries/mints built on them can be steered. Use a commit-reveal or a random-seed oracle
+MEDIUM   NS008 src/lib.rs:153 public method `free_note` stores caller-controlled data without an attached deposit or storage check; charging for storage (or requiring it up front) keeps the contract's balance from being drained
+MEDIUM   NS007 src/lib.rs:159 public method `total_pending` loops over a collection that callers can grow without a bound; add pagination or cap the iteration before gas makes this method uncallable
+HIGH     NS010 src/lib.rs:166 public method `notify_receiver` builds a Promise::new target from caller input without an allowlist check; restrict targets to state-derived values or an allowlist before the contract pays or calls attacker-chosen accounts
+CRITICAL NS005 src/lib.rs:182 ignore_state init `migrate` is not access-controlled; any account can reinitialize contract state. Add #[private] or assert predecessor == current_account_id
 12 findings (critical 2, high 4, medium 5, low 1, info 0)
+disclaimer: 10 of 12 findings are heuristic-confidence review hints; expect false positives and confirm each one by hand
+```
+
+The patched twin of the example scans clean:
+
+```text
+$ cargo run -p nearsc -- scan examples/fixed-contract
+0 findings (critical 0, high 0, medium 0, low 0, info 0)
 ```
 
 After installing (see below), the same scan is `nearsc scan examples/vulnerable-contract`.

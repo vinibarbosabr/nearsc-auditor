@@ -7,7 +7,6 @@ fn fixture(name: &str) -> PathBuf {
         .join("../../tests/fixtures")
         .join(name)
 }
-
 #[test]
 fn vulnerable_fixture_emits_exactly_ns011() {
     let result = engine::scan_path(&fixture("ns011/vuln.rs"));
@@ -49,9 +48,23 @@ fn non_payable_functions_are_not_flagged() {
 }
 
 #[test]
-fn payable_deposit_with_abort_and_no_refund_flags() {
-    // The example's deposit() is #[payable], has no abort, and stores the
-    // value directly: no NS011 finding there.
+fn panicking_payable_methods_are_not_flagged() {
+    // A panic reverts the receipt: the deposit auto-returns to the caller,
+    // so assert/expect-only aborts cannot strand funds (the KB pattern
+    // documents this; the matcher encodes it).
+    let result = engine::scan_path(&fixture("ns011/panic_exempt.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn example_contract_flags_early_return_claim() {
+    // The example's claim() is #[payable] and returns early (no panic, no
+    // refund): exactly one NS011 finding there.
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     let ns011: Vec<_> = result
         .findings

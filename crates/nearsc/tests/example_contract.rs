@@ -2,10 +2,12 @@ use std::path::PathBuf;
 
 use nearsc::engine;
 
-/// The example contract is the demo + dogfood surface: its scan output is
-/// contractual. Every seed must fire exactly its own rule; nothing else.
-/// When a new rule seed lands in `examples/vulnerable-contract`, its id is
-/// appended to the expected vector in the same commit.
+/// The example contracts are the demo + dogfood surface: the vulnerable
+/// contract's scan output is contractual (one finding per seeded rule),
+/// and the fixed twin must scan clean. When a new rule seed lands in
+/// `examples/vulnerable-contract`, its id is appended to the expected
+/// vector in the same commit, and the corresponding fix lands in
+/// `examples/fixed-contract`.
 #[test]
 fn example_contract_emits_exactly_the_seeded_rules() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/vulnerable-contract");
@@ -35,4 +37,22 @@ fn example_contract_emits_exactly_the_seeded_rules() {
             "expected exactly one {id} seed"
         );
     }
+}
+
+/// The patched twin: same surface, every seed fixed. Scans clean; this is
+/// the vulnerable-vs-fixed demo oracle.
+#[test]
+fn fixed_contract_emits_no_findings() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/fixed-contract");
+    let result = engine::scan_path(&path);
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(
+        result.findings.is_empty(),
+        "fixed contract must scan clean: {:#?}",
+        result.findings
+    );
 }

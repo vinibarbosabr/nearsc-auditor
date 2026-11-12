@@ -208,14 +208,19 @@ pub fn snippet_at(context: &FileContext, line: usize) -> String {
 /// Recognize a manual "only the contract itself may call this" guard.
 ///
 /// Matches a body that mentions both `predecessor_account_id` and
-/// `current_account_id`, an `assert_self`-style macro, or a macro invocation
-/// whose tokens mention both calls (`assert_eq!`, `require!`, ...). Macro bodies
-/// are inspected as tokens because `syn` does not expand them.
+/// `current_account_id`, an `assert_self`-style macro, a comparison of
+/// `predecessor_account_id` against a `self` field (the owner-guard shape
+/// the NS005/NS006/NS012 messages recommend:
+/// `assert_eq!(env::predecessor_account_id(), self.owner)`), or a macro
+/// invocation whose tokens mention both calls (`assert_eq!`, `require!`,
+/// ...). Macro bodies are inspected as tokens because `syn` does not
+/// expand them.
 pub fn body_has_guard(block: &syn::Block) -> bool {
     #[derive(Default)]
     struct GuardVisitor {
         predecessor: bool,
         current: bool,
+        self_field: bool,
         assert_self: bool,
     }
 
@@ -244,6 +249,15 @@ pub fn body_has_guard(block: &syn::Block) -> bool {
             syn::visit::visit_expr_call(self, call);
         }
 
+        fn visit_expr_field(&mut self, field: &'ast syn::ExprField) {
+            // `self.owner`, `self.staking_id`, ...: an owner-style guard
+            // compares the predecessor against a state field.
+            if is_self_base(&field.base) {
+                self.self_field = true;
+            }
+            syn::visit::visit_expr_field(self, field);
+        }
+
         fn visit_macro(&mut self, mac: &'ast syn::Macro) {
             if mac
                 .path
@@ -253,20 +267,52 @@ pub fn body_has_guard(block: &syn::Block) -> bool {
             {
                 self.assert_self = true;
             }
-            let tokens = mac.tokens.to_string();
-            if tokens.contains("predecessor_account_id") {
-                self.predecessor = true;
-            }
-            if tokens.contains("current_account_id") {
-                self.current = true;
+            // Macro bodies are not visited as expressions by `syn`, so the
+            // guard mentions inside `assert_eq!`/`require!` are matched on
+            // the flattened token stream.
+            let mut pending: Vec<proc_macro2::TokenTree> =
+                mac.tokens.clone().into_iter().collect();
+            while let Some(tree) = pending.pop() {
+                match tree {
+                    proc_macro2::TokenTree::Ident(ident) => {
+                        if ident == "predecessor_account_id" {
+                            self.predecessor = true;
+                        }
+                        if ident == "current_account_id" {
+                            self.current = true;
+                        }
+                        if ident == "self" {
+                            self.self_field = true;
+                        }
+                    }
+                    proc_macro2::TokenTree::Group(group) => {
+                        pending.extend(group.stream());
+                    }
+                    _ => {}
+                }
             }
             syn::visit::visit_macro(self, mac);
         }
     }
 
+    /// `self` (and field chains rooted at `self`): the base of a state
+    /// field access. `self` alone is a one-segment path in `syn`.
+    fn is_self_base(expr: &Expr) -> bool {
+        match expr {
+            Expr::Path(path) => {
+                path.path.segments.len() == 1 && path.path.segments[0].ident == "self"
+            }
+            Expr::Field(field) => is_self_base(&field.base),
+            Expr::Reference(reference) => is_self_base(&reference.expr),
+            _ => false,
+        }
+    }
+
     let mut visitor = GuardVisitor::default();
     visitor.visit_block(block);
-    visitor.assert_self || (visitor.predecessor && visitor.current)
+    visitor.assert_self
+        || (visitor.predecessor && visitor.current)
+        || (visitor.predecessor && visitor.self_field)
 }
 
 #[cfg(test)]
@@ -297,6 +343,47 @@ mod tests {
             assert_self!();
         });
         assert!(body_has_guard(&block));
+    }
+
+    #[test]
+    fn detects_owner_field_guard() {
+        // The owner-guard shape the rule messages recommend: predecessor
+        // compared against a state field (`self.owner`, a trusted staking
+        // contract id, ...). The macro tokens carry both mentions.
+        let block: syn::Block = syn::parse_quote!({
+            assert_eq!(
+                env::predecessor_account_id(),
+                self.staking_id,
+                "ERR_INVALID_CALLER"
+            );
+        });
+        assert!(body_has_guard(&block));
+    }
+
+    #[test]
+    fn detects_owner_field_guard_call_form() {
+        // Method-call form: `assert!(env::predecessor_account_id() ==
+        // self.owner)` and field access under a reference both count.
+        let block: syn::Block = syn::parse_quote!({
+            assert!(
+                env::predecessor_account_id() == *self.owner,
+                "ERR_INVALID_CALLER"
+            );
+        });
+        assert!(body_has_guard(&block));
+    }
+
+    #[test]
+    fn predecessor_alone_is_not_a_guard() {
+        // Reading the predecessor without comparing it to anything the
+        // contract trusts is bookkeeping, not a guard. The field write here
+        // is `caller`-keyed bookkeeping (insert on a state field), which
+        // the guard test must not mistake for a self/owner comparison.
+        let block: syn::Block = syn::parse_quote!({
+            let caller = env::predecessor_account_id();
+            log(caller);
+        });
+        assert!(!body_has_guard(&block));
     }
 
     #[test]
