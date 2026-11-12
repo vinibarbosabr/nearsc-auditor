@@ -6,8 +6,10 @@
 scanning a project for NEAR contract vulnerabilities, looking up vulnerability
 patterns, searching real audit/postmortem precedent, checking a contract's
 on-chain deployment info against an audited-build registry, and scaffolding a
-workspaces-rs proof-of-concept test. The scan path is deterministic and
-offline; only `nearsc_contract_info` uses the network (fixed public RPC).
+workspaces-rs proof-of-concept test. The scan path and the knowledge base are
+embedded in the binary (no data directory, no network); only
+`nearsc_contract_info` uses the network, and path-taking tools are confined to
+the project the harness opened.
 
 Part of the [nearsc-auditor](https://github.com/vinibarbosabr/nearsc-auditor)
 toolkit; uses the same engine as the
