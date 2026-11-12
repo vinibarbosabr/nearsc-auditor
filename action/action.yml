@@ -43,7 +43,9 @@ runs:
         fi
         code=0
         # `--output` prints nothing, so the summary comes from a text pass.
-        summary="$(nearsc scan "$INPUT_PATH" --format text 2>/dev/null | tail -n 1)" || code=$?
+        # The disclaimer footer is last when heuristic findings exist, so
+        # the summary line is the last line that ends in `findings (...)`.
+        summary="$(nearsc scan "$INPUT_PATH" --format text 2>/dev/null | grep "findings (" | tail -n 1)" || code=$?
         nearsc "${args[@]}" 2>/dev/null || code=$?
         echo "summary=$summary" >> "$GITHUB_OUTPUT"
         echo "sarif=$INPUT_SARIF" >> "$GITHUB_OUTPUT"

@@ -265,7 +265,10 @@ impl<'ast> Visit<'ast> for AbortProbe {
         // `panic_str`; `std::process::abort()` and `panic(...)`.
         if let Expr::Path(path) = &*call.func {
             if let Some(segment) = path.path.segments.last() {
-                if segment.ident == "abort" || segment.ident == "panic_str" || segment.ident == "panic" {
+                if segment.ident == "abort"
+                    || segment.ident == "panic_str"
+                    || segment.ident == "panic"
+                {
                     self.aborts = true;
                 }
             }

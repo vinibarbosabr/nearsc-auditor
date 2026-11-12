@@ -193,12 +193,24 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 }
                 let result = engine::scan_path_only(&path, &requested);
                 return render_and_gate(
-                    result, format, fail_on, min_severity, min_confidence, output,
+                    result,
+                    format,
+                    fail_on,
+                    min_severity,
+                    min_confidence,
+                    output,
                 );
             }
 
             let result = engine::scan_path(&path);
-            render_and_gate(result, format, fail_on, min_severity, min_confidence, output)
+            render_and_gate(
+                result,
+                format,
+                fail_on,
+                min_severity,
+                min_confidence,
+                output,
+            )
         }
         Command::Rules { command } => match command {
             RulesCommand::List { format } => {
@@ -325,11 +337,13 @@ fn render_and_gate(
         let min = Confidence::from(min);
         // Confidence ordering: spec > heuristic. Keep findings whose
         // confidence is at or above the requested floor.
-        result.findings.retain(|finding| match (min, finding.confidence) {
-            (Confidence::Spec, Confidence::Spec) => true,
-            (Confidence::Spec, Confidence::Heuristic) => false,
-            (Confidence::Heuristic, _) => true,
-        });
+        result
+            .findings
+            .retain(|finding| match (min, finding.confidence) {
+                (Confidence::Spec, Confidence::Spec) => true,
+                (Confidence::Spec, Confidence::Heuristic) => false,
+                (Confidence::Heuristic, _) => true,
+            });
         result.summary.recount(&result.findings);
     }
     let rendered: anyhow::Result<String> = match format.as_str() {

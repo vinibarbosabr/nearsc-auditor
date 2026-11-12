@@ -270,8 +270,7 @@ pub fn body_has_guard(block: &syn::Block) -> bool {
             // Macro bodies are not visited as expressions by `syn`, so the
             // guard mentions inside `assert_eq!`/`require!` are matched on
             // the flattened token stream.
-            let mut pending: Vec<proc_macro2::TokenTree> =
-                mac.tokens.clone().into_iter().collect();
+            let mut pending: Vec<proc_macro2::TokenTree> = mac.tokens.clone().into_iter().collect();
             while let Some(tree) = pending.pop() {
                 match tree {
                     proc_macro2::TokenTree::Ident(ident) => {

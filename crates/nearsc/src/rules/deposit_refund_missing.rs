@@ -106,9 +106,7 @@ impl Collector<'_> {
         if refunded {
             return;
         }
-        let (line, column) = probe
-            .first_exit
-            .expect("can_exit_early implies first_exit");
+        let (line, column) = probe.first_exit.expect("can_exit_early implies first_exit");
         self.fns.push(FnInfo {
             name: ident.to_string(),
             line,
