@@ -61,12 +61,19 @@ impl AbiCollector<'_> {
 impl<'ast> Visit<'ast> for AbiCollector<'_> {
     fn visit_item_impl(&mut self, item: &'ast syn::ItemImpl) {
         // Exported impl: `#[near]` (near-sdk v2) or `#[near_bindgen]` (v1).
-        // `pub` methods of such an impl are registered on the ABI; trait
-        // impls (`impl Trait for X`) are treated the same way.
+        // Methods of such an impl are registered on the ABI; trait impls
+        // (`impl Trait for X`) are treated the same way. Trait methods have
+        // no visibility modifier at the AST level (they inherit the trait's
+        // publicity), so a trait impl exports every method; an inherent impl
+        // still requires `pub`.
         if !self.in_test_cfg && !attrs_cfg_test(&item.attrs) && impl_is_near(item) {
+            let is_trait_impl = item.trait_.is_some();
             for impl_item in &item.items {
                 if let syn::ImplItem::Fn(fn_item) = impl_item {
-                    if matches!(fn_item.vis, syn::Visibility::Public(_)) {
+                    let public = matches!(fn_item.vis, syn::Visibility::Public(_))
+                        || (is_trait_impl
+                            && matches!(fn_item.vis, syn::Visibility::Inherited));
+                    if public {
                         self.insert(&fn_item.sig.ident);
                     }
                 }

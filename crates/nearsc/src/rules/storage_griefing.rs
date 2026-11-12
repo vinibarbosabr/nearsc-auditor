@@ -174,13 +174,13 @@ fn is_self_expr(expr: &Expr) -> bool {
 
 /// All identifier spellings in the body, flattened through macro groups,
 /// for guard-marker scans (token-based like the other rules).
-fn body_tokens(block: &syn::Block) -> Vec<String> {
+pub(crate) fn body_tokens(block: &syn::Block) -> Vec<String> {
     let mut out = Vec::new();
     collect_idents(block, &mut out);
     out
 }
 
-fn collect_idents(block: &syn::Block, out: &mut Vec<String>) {
+pub(crate) fn collect_idents(block: &syn::Block, out: &mut Vec<String>) {
     #[derive(Default)]
     struct IdentProbe {
         idents: Vec<String>,

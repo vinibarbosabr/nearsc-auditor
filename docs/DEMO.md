@@ -26,7 +26,7 @@ HIGH     NS002 src/lib.rs:87 callback `on_deposit_complete` can be invoked by an
 MEDIUM   NS003 src/lib.rs:95 callback `on_withdraw_result` can panic on attacker-influenced input; handle failure explicitly instead of unwrap/expect/indexing
 HIGH     NS004 src/lib.rs:111 function `on_deposit_result` consumes a promise result without matching PromiseResult::Failed; state can advance on a failed cross-contract call
 CRITICAL NS006 src/lib.rs:119 function `set_state` writes contract state without an access-control guard; a caller can overwrite it. Add #[private] or assert predecessor == current_account_id / owner
-LOW      NS011 src/lib.rs:135 payable method `claim` can return early after the deposit attached and shows no refund path; refund the attached deposit on every early exit or document why funds may stay
+LOW      NS011 src/lib.rs:137 payable method `claim` can return early after the deposit attached and shows no refund path; refund the attached deposit on every early exit or document why funds may stay
 MEDIUM   NS009 src/lib.rs:145 `draw_winner` derives a value from block data or the caller's account; those inputs are predictable or influenceable, so lotteries/mints built on them can be steered. Use a commit-reveal or a random-seed oracle
 MEDIUM   NS008 src/lib.rs:153 public method `free_note` stores caller-controlled data without an attached deposit or storage check; charging for storage (or requiring it up front) keeps the contract's balance from being drained
 MEDIUM   NS007 src/lib.rs:159 public method `total_pending` loops over a collection that callers can grow without a bound; add pagination or cap the iteration before gas makes this method uncallable

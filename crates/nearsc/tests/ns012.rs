@@ -79,6 +79,49 @@ fn owner_field_guard_satisfies_the_rule() {
 }
 
 #[test]
+fn owner_getter_guard_satisfies_the_rule() {
+    // The factory-2 shape: the predecessor is compared against
+    // `self.get_owner()`, a method call, instead of the `self.owner` field.
+    // Same guard, different spelling.
+    let result = engine::scan_path(&fixture("ns012/owner_getter_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn delegated_owner_guard_helper_satisfies_the_rule() {
+    // The sputnikdao-factory2 shape: the setter calls a same-file
+    // `assert_owner()` helper that performs the predecessor-vs-owner check.
+    // The helper's own body carries the guard.
+    let result = engine::scan_path(&fixture("ns012/delegated_owner_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn non_guard_helper_caller_stays_flagged() {
+    // A `self.assert_*()` call is credited only when the same-file helper
+    // actually performs a caller check; otherwise the setter stays a
+    // finding (no over-crediting).
+    let result = engine::scan_path(&fixture("ns012/delegated_helper_not_guard.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(ids, vec!["NS012"], "unguarded setter must stay flagged: {ids:?}");
+}
+
+#[test]
 fn state_write_body_defers_to_ns006() {
     let result = engine::scan_path(&fixture("ns012/defers_to_ns006.rs"));
     assert!(

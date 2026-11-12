@@ -50,6 +50,34 @@ fn state_derived_targets_are_not_flagged() {
 }
 
 #[test]
+fn callback_recorded_predecessor_refund_is_not_flagged() {
+    // The factory `on_create` shape: a `#[private]` callback refunding the
+    // predecessor the contract itself recorded in the initiating call. The
+    // parameter is the recorded predecessor, not a caller-chosen target.
+    let result = engine::scan_path(&fixture("ns010/callback_refund_path.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn callback_with_arbitrary_param_stays_flagged() {
+    // Negative control: a callback parameter that does not carry the
+    // recorded-predecessor name keeps the NS010 finding (no over-exemption).
+    let result = engine::scan_path(&fixture("ns010/callback_arbitrary_param.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(ids, vec!["NS010"], "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_exactly_one_promise_target() {
     // notify_receiver is the NS010 seed; withdraw was reconciled to a
     // state-derived target so the example carries exactly one finding.

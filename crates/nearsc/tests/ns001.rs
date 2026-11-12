@@ -83,6 +83,35 @@ fn if_shaped_one_yocto_check_is_recognized() {
 }
 
 #[test]
+fn delegation_to_standards_token_counts_as_guarded() {
+    // The NEP-141 thin-wrapper shape: the check lives inside the delegated
+    // near-contract-standards `FungibleToken` impl, reached through
+    // `self.<field>.ft_transfer(...)`. The wrapper is not a missing check.
+    let result = engine::scan_path(&fixture("ns001/delegated_transfer.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn delegation_to_internal_helper_without_check_stays_flagged() {
+    // Negative control: `self.<field>.<method>()` credit applies only to
+    // the standards-delegation shapes; delegating to an internal helper
+    // without any check keeps the NS001 finding.
+    let result = engine::scan_path(&fixture("ns001/delegated_transfer_unguarded.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(ids, vec!["NS001"], "{:?}", result.findings);
+}
+
+#[test]
 fn example_contract_flags_unchecked_transfer() {
     let result = engine::scan_path(&fixture("../../examples/vulnerable-contract"));
     assert!(

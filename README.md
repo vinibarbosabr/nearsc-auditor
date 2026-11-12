@@ -12,11 +12,12 @@ for coding agents, and a knowledge base of real NEAR audit precedent.**
 
 ## What it does
 
-- **Scans NEAR contract Rust source** with 12 rules (NS001-NS012): callback
+- **Scans NEAR contract Rust source** with 13 rules (NS001-NS013): callback
   privacy, 1-yocto authorization, unchecked promise results, unguarded
   init/upgrade paths, unbounded iteration, storage griefing, insecure
   randomness, arbitrary promise targets, deposit-refund gaps, privileged
-  setters. Reports text, JSON, SARIF 2.1, or a self-contained HTML page.
+  setters, repeatable balance drains. Reports text, JSON, SARIF 2.1, or a
+  self-contained HTML page.
 - **Serves coding agents over MCP**: five read-only tools (scan, pattern
   lookup, audit precedent, on-chain contract reputation, PoC scaffold) with
   path confinement and account-id validation.
@@ -53,7 +54,6 @@ CRITICAL NS005 src/lib.rs:182 ignore_state init `migrate` is not access-controll
 12 findings (critical 2, high 4, medium 5, low 1, info 0)
 disclaimer: 10 of 12 findings are heuristic-confidence review hints; expect false positives and confirm each one by hand
 ```
-
 The patched twin of the example scans clean:
 
 ```text
@@ -144,6 +144,7 @@ Uploads nothing by itself; pair it with `github/codeql-action/upload-sarif` usin
 | NS010 | arbitrary-promise-target | high | heuristic |
 | NS011 | deposit-refund-missing | low | heuristic |
 | NS012 | privileged-setter-unguarded | medium | heuristic |
+| NS013 | balance-drain-transfer | high | heuristic |
 
 Detection prose, false-positive notes, and vulnerable/fixed pairs per rule: [docs/RULES.md](docs/RULES.md). Run `nearsc rules list` / `nearsc rules show NS002` for the catalog from the binary. Every rule ships a vulnerable + patched fixture pair (`tests/fixtures/`) as the test oracle.
 
@@ -162,7 +163,7 @@ sourcing rules, and the entry list: [docs/KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE
 ```
 nearsc-auditor/
 ├── crates/
-│   ├── nearsc/          # lib + bin: engine, 12 rule matchers, reports, RPC, embedded KB
+│   ├── nearsc/          # lib + bin: engine, 13 rule matchers, reports, RPC, embedded KB
 │   └── nearsc-mcp/      # rmcp stdio server, 5 tools, same engine
 ├── tests/fixtures/      # vuln.rs + fixed.rs per rule (the test oracle)
 ├── examples/vulnerable-contract/   # deliberately vulnerable demo contract

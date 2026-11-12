@@ -7,7 +7,7 @@
 
 use proc_macro2::TokenTree;
 use syn::visit::Visit;
-use syn::{ImplItemFn, ItemFn};
+use syn::{Expr, ImplItemFn, ItemFn};
 
 use super::{snippet_at, Rule};
 use crate::engine::FileContext;
@@ -55,9 +55,33 @@ struct FnInfo {
     guarded: bool,
     /// Names of zero-or-more local helpers this fn calls.
     callees: Vec<String>,
+    /// `Some((field, method))` when the body's only transfer-relevant call is
+    /// `self.<field>.<method>(...)` — the delegation shape. `field` is the
+    /// state field the call is rooted at.
+    delegation: Option<(String, String)>,
     line: usize,
     column: usize,
 }
+
+/// Transfer methods whose delegation target (a near-contract-standards
+/// `FungibleToken`/`NonFungibleToken`/`StorageManagement` field) already
+/// enforces the 1-yocto check internally.
+const STANDARDS_DELEGATION_FIELDS: &[&str] = &[
+    "token",
+    "ft",
+    "fungible_token",
+    "nft",
+    "nonfungible_token",
+    "non_fungible_token",
+    "storage_management",
+    "nft_token",
+];
+
+/// Methods that the standards implementations assert on internally
+/// (near-contract-standards `core_impl.rs` `ft_transfer`/`ft_transfer_call`
+/// call `assert_one_yocto()`).
+const STANDARDS_GUARDED_METHODS: &[&str] =
+    &["ft_transfer", "ft_transfer_call", "nft_transfer", "nft_transfer_call"];
 
 impl Collector {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
@@ -68,10 +92,21 @@ impl Collector {
                 .iter()
                 .any(|callee| self.guard_helpers.iter().any(|h| h == callee))
         };
+        let standards_delegated = |fn_info: &FnInfo| {
+            fn_info
+                .delegation
+                .as_ref()
+                .is_some_and(|(field, method)| {
+                    STANDARDS_DELEGATION_FIELDS.contains(&field.as_str())
+                        && STANDARDS_GUARDED_METHODS.contains(&method.as_str())
+                })
+        };
         let unguarded: Vec<&FnInfo> = self
             .transfer_fns
             .iter()
-            .filter(|candidate| !candidate.guarded && !helper_guarded(&candidate.callees))
+            .filter(|candidate| {
+                !candidate.guarded && !helper_guarded(&candidate.callees) && !standards_delegated(candidate)
+            })
             .collect();
         unguarded
             .into_iter()
@@ -206,16 +241,113 @@ impl Collector {
         if is_transfer {
             let start = ident.span().start();
             let callees = body_callee_names(body);
+            let delegation = body_delegation(body, &name);
             self.transfer_fns.push(FnInfo {
                 name,
                 guarded,
                 callees,
+                delegation,
                 line: start.line,
                 column: start.column + 1,
             });
         } else if guarded {
             self.guard_helpers.push(name);
         }
+    }
+}
+
+/// The pure-delegation shape: the whole body is one
+/// `self.<field>.<same-method>(...)` tail call (optionally with `return`),
+/// where `<field>` is a token state (near-contract-standards
+/// `FungibleToken`/`NonFungibleToken`/`StorageManagement`). The standards
+/// implementation performs the 1-yocto assertion internally, so the wrapper
+/// is guarded by delegation.
+///
+/// Restricted to the exact wrapper idiom (single statement, same method
+/// name) so any additional logic — pre-checks, extra calls, transformed
+/// arguments — keeps the plain matcher verdict.
+fn body_delegation(block: &syn::Block, method: &str) -> Option<(String, String)> {
+    let stmt_count = block
+        .stmts
+        .iter()
+        .filter(|stmt| !matches!(stmt, syn::Stmt::Item(_)))
+        .count();
+    if stmt_count != 1 {
+        return None;
+    }
+    let method_owned = method.to_string();
+    let mut probe = DelegateProbe {
+        method: method_owned,
+        delegation: None,
+        other_calls: false,
+    };
+    probe.visit_block(block);
+    if probe.other_calls {
+        return None;
+    }
+    probe.delegation.filter(|(field, _)| {
+        STANDARDS_DELEGATION_FIELDS.contains(&field.as_str())
+    })
+}
+
+struct DelegateProbe {
+    method: String,
+    delegation: Option<(String, String)>,
+    other_calls: bool,
+}
+
+impl<'ast> Visit<'ast> for DelegateProbe {
+    fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
+        let method_matches = call.method == self.method;
+        if self.delegation.is_none() && method_matches && is_self_field_receiver(&call.receiver) {
+            self.delegation = Some((self_field_name(&call.receiver), call.method.to_string()));
+        } else if !method_matches {
+            // Any other method call (deposit reads, storage probes,
+            // logging) means the body does more than delegate.
+            self.other_calls = true;
+        }
+        syn::visit::visit_expr_method_call(self, call);
+    }
+
+    fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
+        // Free-function calls (env::*, serde, ...) in the body also
+        // disqualify the pure-delegation shape.
+        self.other_calls = true;
+        syn::visit::visit_expr_call(self, call);
+    }
+}
+
+/// The receiver chain rooted at a `self.<field>` access; returns the field
+/// name (`self.token.ft_transfer` -> `token`).
+fn self_field_name(expr: &Expr) -> String {
+    match expr {
+        Expr::Field(field) => match (&*field.base, &field.member) {
+            (Expr::Path(base), syn::Member::Named(member))
+                if base.path.segments.len() == 1 && base.path.segments[0].ident == "self" =>
+            {
+                member.to_string()
+            }
+            _ => self_field_name(&field.base),
+        },
+        Expr::Reference(reference) => self_field_name(&reference.expr),
+        _ => String::new(),
+    }
+}
+
+/// Is this receiver chain rooted at a `self.<field>` access (not a bare
+/// `self`, not a local)?
+fn is_self_field_receiver(expr: &Expr) -> bool {
+    match expr {
+        Expr::Field(field) => match (&*field.base, &field.member) {
+            (Expr::Path(base), syn::Member::Named(_))
+                if base.path.segments.len() == 1 && base.path.segments[0].ident == "self" =>
+            {
+                true
+            }
+            _ => is_self_field_receiver(&field.base),
+        },
+        Expr::Reference(reference) => is_self_field_receiver(&reference.expr),
+        _ => false,
     }
 }
 

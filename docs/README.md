@@ -21,7 +21,7 @@ nearsc is a security auditing toolkit for NEAR smart contracts: a deterministic 
 | --- | --- |
 | [VISION.md](VISION.md) | What problem, for whom, why now, what it is not |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How the engine, MCP server, and KB fit together |
-| [RULES.md](RULES.md) | The 12 rules: what, why, detection, false positives, **status per rule** |
+| [RULES.md](RULES.md) | The 13 rules: what, why, detection, false positives, **status per rule** |
 | [MCP.md](MCP.md) | Tool contracts, install per harness, safety model |
 | [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) | KB schema, sourcing rules, confidence labels |
 | [SECURITY.md](SECURITY.md) | Threat model of the tool itself and its limits |
