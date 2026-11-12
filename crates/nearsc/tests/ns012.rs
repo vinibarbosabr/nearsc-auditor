@@ -118,7 +118,11 @@ fn non_guard_helper_caller_stays_flagged() {
         result.parse_errors
     );
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
-    assert_eq!(ids, vec!["NS012"], "unguarded setter must stay flagged: {ids:?}");
+    assert_eq!(
+        ids,
+        vec!["NS012"],
+        "unguarded setter must stay flagged: {ids:?}"
+    );
 }
 
 #[test]

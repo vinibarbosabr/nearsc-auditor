@@ -81,7 +81,13 @@ impl Collector {
             .collect()
     }
 
-    fn push_fn(&mut self, ident: &syn::Ident, attrs: &[syn::Attribute], sig: &syn::Signature, body: &syn::Block) {
+    fn push_fn(
+        &mut self,
+        ident: &syn::Ident,
+        attrs: &[syn::Attribute],
+        sig: &syn::Signature,
+        body: &syn::Block,
+    ) {
         let params: Vec<String> = sig
             .inputs
             .iter()
@@ -260,12 +266,7 @@ impl<'ast> Visit<'ast> for Collector {
     }
 
     fn visit_impl_item_fn(&mut self, item: &'ast ImplItemFn) {
-        self.push_fn(
-            &item.sig.ident,
-            &item.attrs,
-            &item.sig,
-            &item.block,
-        );
+        self.push_fn(&item.sig.ident, &item.attrs, &item.sig, &item.block);
         syn::visit::visit_impl_item_fn(self, item);
     }
 }

@@ -80,8 +80,12 @@ const STANDARDS_DELEGATION_FIELDS: &[&str] = &[
 /// Methods that the standards implementations assert on internally
 /// (near-contract-standards `core_impl.rs` `ft_transfer`/`ft_transfer_call`
 /// call `assert_one_yocto()`).
-const STANDARDS_GUARDED_METHODS: &[&str] =
-    &["ft_transfer", "ft_transfer_call", "nft_transfer", "nft_transfer_call"];
+const STANDARDS_GUARDED_METHODS: &[&str] = &[
+    "ft_transfer",
+    "ft_transfer_call",
+    "nft_transfer",
+    "nft_transfer_call",
+];
 
 impl Collector {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
@@ -93,19 +97,18 @@ impl Collector {
                 .any(|callee| self.guard_helpers.iter().any(|h| h == callee))
         };
         let standards_delegated = |fn_info: &FnInfo| {
-            fn_info
-                .delegation
-                .as_ref()
-                .is_some_and(|(field, method)| {
-                    STANDARDS_DELEGATION_FIELDS.contains(&field.as_str())
-                        && STANDARDS_GUARDED_METHODS.contains(&method.as_str())
-                })
+            fn_info.delegation.as_ref().is_some_and(|(field, method)| {
+                STANDARDS_DELEGATION_FIELDS.contains(&field.as_str())
+                    && STANDARDS_GUARDED_METHODS.contains(&method.as_str())
+            })
         };
         let unguarded: Vec<&FnInfo> = self
             .transfer_fns
             .iter()
             .filter(|candidate| {
-                !candidate.guarded && !helper_guarded(&candidate.callees) && !standards_delegated(candidate)
+                !candidate.guarded
+                    && !helper_guarded(&candidate.callees)
+                    && !standards_delegated(candidate)
             })
             .collect();
         unguarded
@@ -285,9 +288,9 @@ fn body_delegation(block: &syn::Block, method: &str) -> Option<(String, String)>
     if probe.other_calls {
         return None;
     }
-    probe.delegation.filter(|(field, _)| {
-        STANDARDS_DELEGATION_FIELDS.contains(&field.as_str())
-    })
+    probe
+        .delegation
+        .filter(|(field, _)| STANDARDS_DELEGATION_FIELDS.contains(&field.as_str()))
 }
 
 struct DelegateProbe {

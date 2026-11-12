@@ -71,8 +71,7 @@ impl<'ast> Visit<'ast> for AbiCollector<'_> {
             for impl_item in &item.items {
                 if let syn::ImplItem::Fn(fn_item) = impl_item {
                     let public = matches!(fn_item.vis, syn::Visibility::Public(_))
-                        || (is_trait_impl
-                            && matches!(fn_item.vis, syn::Visibility::Inherited));
+                        || (is_trait_impl && matches!(fn_item.vis, syn::Visibility::Inherited));
                     if public {
                         self.insert(&fn_item.sig.ident);
                     }

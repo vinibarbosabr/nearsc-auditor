@@ -25,8 +25,8 @@ use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
 use super::common::body_writes_state;
-use super::{snippet_at, Rule};
 use super::storage_griefing;
+use super::{snippet_at, Rule};
 use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
@@ -120,7 +120,9 @@ impl Collector<'_> {
         if !self.abi.is_exported(ident) {
             return;
         }
-        let private = attrs.iter().any(|attr| super::last_segment_is(attr, "private"));
+        let private = attrs
+            .iter()
+            .any(|attr| super::last_segment_is(attr, "private"));
         if private {
             return;
         }
