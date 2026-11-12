@@ -11,8 +11,8 @@ nearsc is a security auditing toolkit for NEAR smart contracts: a deterministic 
 | Judge or first-time visitor | [VISION.md](VISION.md), then [DEMO.md](DEMO.md) |
 | Builder scanning a contract | [DEMO.md](DEMO.md), then [RULES.md](RULES.md) |
 | Agent / MCP user | [MCP.md](MCP.md), then [SECURITY.md](SECURITY.md) |
-| Security researcher | [RULES.md](RULES.md), then [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) |
-| Contributor | [CONTRIBUTING.md](CONTRIBUTING.md), then [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Security researcher | [RULES.md](RULES.md), then [FALSE-POSITIVES.md](FALSE-POSITIVES.md) and [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) |
+| Contributor | [CONTRIBUTING.md](CONTRIBUTING.md), then [FALSE-POSITIVES.md](FALSE-POSITIVES.md) and [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Comparing tools | [COMPARISON.md](COMPARISON.md) |
 
 ## Index
@@ -22,6 +22,7 @@ nearsc is a security auditing toolkit for NEAR smart contracts: a deterministic 
 | [VISION.md](VISION.md) | What problem, for whom, why now, what it is not |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How the engine, MCP server, and KB fit together |
 | [RULES.md](RULES.md) | The 13 rules: what, why, detection, false positives, **status per rule** |
+| [FALSE-POSITIVES.md](FALSE-POSITIVES.md) | How false positives are classified, disclosed, and fixed; the safety bar for matcher changes |
 | [MCP.md](MCP.md) | Tool contracts, install per harness, safety model |
 | [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) | KB schema, sourcing rules, confidence labels |
 | [SECURITY.md](SECURITY.md) | Threat model of the tool itself and its limits |

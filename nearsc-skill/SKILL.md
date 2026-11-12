@@ -83,6 +83,9 @@ For each finding, in priority order:
    the actual code, not the matcher text. Heuristic rules (NS003–NS013) may
    flag safe code; check whether the guard the rule wants already exists in
    another form (`assert_one_yocto()` equivalent, manual predecessor check).
+   A false positive must be provable from source (the guard exists in another
+   spelling, or the assumed semantics do not apply) — the definitions and the
+   bar for proposing matcher changes are in docs/FALSE-POSITIVES.md.
 3. Pull real precedent: `nearsc_audits {query: <class keywords>}`. Cite at
    most one relevant public report or postmortem per finding class, with its
    confidence label (`verified-public`, `community`, `inferred`).
