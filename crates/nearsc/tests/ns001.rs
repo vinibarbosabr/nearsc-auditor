@@ -126,3 +126,14 @@ fn example_contract_flags_unchecked_transfer() {
         .expect("NS001 finding");
     assert!(ns001.message.contains("ft_transfer"));
 }
+
+#[test]
+fn test_fixture_transfer_is_not_a_finding() {
+    let result = engine::scan_path(&fixture("ns001/test_fixture_transfer.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}

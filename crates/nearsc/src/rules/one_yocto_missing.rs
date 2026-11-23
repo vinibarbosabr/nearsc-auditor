@@ -10,6 +10,7 @@ use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
 use super::{snippet_at, Rule};
+use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -36,14 +37,19 @@ impl Rule for OneYoctoMissing {
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            abi: &context.abi,
+            transfer_fns: Vec::new(),
+            guard_helpers: Vec::new(),
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
 }
 
-#[derive(Default)]
-struct Collector {
+struct Collector<'a> {
+    /// The contract's callable surface: only ABI functions are reported.
+    abi: &'a AbiIndex,
     /// Every transfer-shaped method: name, direct guard flag, callee names.
     transfer_fns: Vec<FnInfo>,
     /// Locally defined functions whose body checks the 1-yocto deposit.
@@ -87,7 +93,7 @@ const STANDARDS_GUARDED_METHODS: &[&str] = &[
     "nft_transfer_call",
 ];
 
-impl Collector {
+impl Collector<'_> {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
         // Two passes over the transfer fns: resolve guarded candidates first
         // (a helper defined later in the file still counts), then report.
@@ -236,12 +242,21 @@ fn expr_checks_one_yocto(expr: &syn::Expr) -> bool {
     probe.assert_one_yocto
 }
 
-impl Collector {
+impl Collector<'_> {
     fn push_fn(&mut self, ident: &syn::Ident, _attrs: &[syn::Attribute], body: &syn::Block) {
         let name = ident.to_string();
         let is_transfer = TRANSFER_METHODS.contains(&name.as_str());
         let guarded = body.stmts.iter().any(stmt_checks_one_yocto);
         if is_transfer {
+            // ABI gate (campaign fix, issue #83): test fixtures and internal
+            // helpers are not callable by an account; `#[cfg(test)]` modules
+            // and non-exported functions are out of the rule's contract.
+            // Only the transfer-method record is gated: local helpers that
+            // perform the check stay in `guard_helpers` for delegation
+            // credit regardless of their visibility.
+            if !self.abi.is_exported(ident) {
+                return;
+            }
             let start = ident.span().start();
             let callees = body_callee_names(body);
             let delegation = body_delegation(body, &name);
@@ -425,7 +440,7 @@ fn stmt_checks_one_yocto(stmt: &syn::Stmt) -> bool {
     }
 }
 
-impl<'ast> Visit<'ast> for Collector {
+impl<'ast> Visit<'ast> for Collector<'_> {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
         self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_item_fn(self, item);
