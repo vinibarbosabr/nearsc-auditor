@@ -91,3 +91,15 @@ The policy was codified from this campaign (snapshot git `5434a59`, 2026-11-12; 
 | v0.1.2 (`0bb3c45`) | 2 (high 1, medium 1) | The 5 residual FPs (trait delegation ×2, delegated owner guard ×2, recorded-predecessor refund ×1) fixed under the safety bar; NS013 added — the drain now **is** a finding |
 
 The regression that matters: across both fixes, no finding triaged true-positive or partial was ever dropped. Final envelope: the real drain (NS013) plus the one deliberate review hint (NS003). Zero false positives on a hardened, in-production codebase — with recall strictly higher than where the campaign started.
+
+## v0.2.0 scan campaign (2026-11-23, issues #81/#83)
+
+Targets 1-3 of the 8-target campaign (near-contract-standards via near-sdk-rs @ `a2d4aa4`, PotLock @ `71f35051`, Burrow @ `0dbfa180`), triaged per this policy, produced the matcher corrections above. NS014 (the GUV-5 manifest rule) shipped in the same branch after Vini approved the oracle amendment; its 9 true positives across the 4 workspaces are the campaign's second headline: every audited target carried at least one unpinned release manifest.
+
+| Target | Before | After | What landed |
+| --- | --- | --- | --- |
+| near-contract-standards (crate-only) | 6 | 3 | NS001 ABI gate (test fixtures), NS010 ABI gate (free refund helpers); the 2 residual NS002 resolver twins are the documented `.then()`-scheduling domain limitation; +1 NS014 (member manifest unpinned) |
+| PotLock @ audited baseline | 64 | 7 | NS012/NS008 crate-scoped guard chains (44+10), NS003 branch/loop exemptions (5); residual: NS012 `update_provider` (signer-spelled guard), NS007 `chef_set_payouts`/`is_human` (growth-site, v0.2 dataflow), NS004 `is_human_callback`, NS010 `verify_callback` (recorded-target refund); +1 NS014 (virtual workspace manifest) |
+| Burrow @ archived HEAD | 1 | 4 | NS007 cross-file growth-site credit deferred to dataflow; the 1 finding is deliberate review noise; +3 NS014 (`contract/`, `common/`, `test-oracle/` member manifests) |
+
+Residual deliberate noise (kept, with this registry): every entry above names its site and the analysis that would clear it. The sputnik reference envelope was amended on 2026-11-23 with Vini's approval (issue #82 comment): NS013 + NS003 + 4x NS014 = 6 findings, because the four member manifests of the hardened reference are exactly the GUV-5 class the new rule catches. It re-runs after each merge.

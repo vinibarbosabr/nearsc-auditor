@@ -1,6 +1,6 @@
 # Rules
 
-> **Status:** v0.1.2 catalog (updated 2026-11-12). All 13 matchers are shipped and registered; `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test in `crates/nearsc/src/rules/mod.rs` keeps the table in sync. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. The `refs` a finding carries come from the matcher module; `Refs` lists below may add reading links.
+> **Status:** v0.2.0-draft catalog (updated 2026-11-23). All 14 matchers are shipped and registered (13 source rules + NS014 manifest rule); `nearsc rules list` / `nearsc rules show <id>` render the catalog from the binary, and the catalog/matcher parity test keeps the table in sync. Every rule ships with a vulnerable and a patched fixture; the fixture pair is the test oracle. The `refs` a finding carries come from the matcher module; `Refs` lists below may add reading links.
 
 Severity scale: **critical** (direct loss of funds or full takeover), **high** (exploitable with realistic preconditions), **medium** (griefing, stuck funds, broken invariants), **low** (hardening), **info** (review hint). Confidence: **spec** (standard or documented semantics), **heuristic** (pattern-based, needs review).
 
@@ -256,6 +256,18 @@ pub fn migrate() -> Self {
 - **Detection:** endpoint-name gate + ABI gate + `#[private]` exclusion, then a body probe: a `Promise::new(...).transfer(...)` payout plus a balance-shaped readout with none of the decrement shapes above. Body-level `env::state_write` also clears the rule (whole-state rewrite re-books the ledger).
 - **False positives:** payout endpoints that legitimately keep the recorded balance (interest-bearing shares, escrow releases driven by other state); the rule is heuristic and the message asks to verify the ledger draw-down. The class needs dataflow (amount ↔ state field binding) for a precise verdict; that is v0.2.
 - **Refs:** [sputnik-dao-contract issue #239](https://github.com/near-daos/sputnik-dao-contract/issues/239), [NEP-145 storage management](https://nomicon.io/Standards/Tokens/FungibleToken/Storage)
+
+---
+
+## NS014: release-profile-overflow-checks
+
+- **Status:** shipped · **Matcher:** `manifest_overflow_checks` (manifest rule)
+- **Severity:** medium · **Confidence:** heuristic · **Tags:** manifest, build-config, arithmetic
+- **Detects:** any `Cargo.toml` manifest whose `[profile.release]` is missing or whose `overflow-checks` is not exactly `true`. rustc's release profile defaults to `overflow-checks = false`, so unpinned release builds wrap silently.
+- **Why it matters:** wrapping arithmetic on amounts, shares, fees, and supply is silent corruption, not a panic (Potlock GUV-5: "No Runtime Overflow Checks Applied", medium). Checked-math hygiene is the fix; the manifest pin is the seatbelt.
+- **Detection:** the engine collects every `Cargo.toml` under the scan root and parses it as data; manifest rules run once per manifest. A member manifest inheriting the pin from a workspace root still reports: the inheritance is invisible to the scanner, and an unpinned member is exactly where the pin gets lost in standalone builds.
+- **False positives:** manifests of non-contract tooling inside the scan root (test utilities, SDK sources) still report; triage per manifest. Workspaces that build with a profile other than release are out of the rule's claim.
+- **Refs:** [Cargo profiles](https://doc.rust-lang.org/cargo/reference/profiles.html)
 
 ---
 
