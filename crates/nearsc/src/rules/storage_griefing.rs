@@ -21,7 +21,7 @@
 use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
-use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use super::{body_has_guard_with, last_segment_is, snippet_at, Rule};
 use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
@@ -53,6 +53,7 @@ impl Rule for StorageGriefing {
     fn check(&self, context: &FileContext) -> Vec<Finding> {
         let mut collector = Collector {
             abi: &context.abi,
+            guard_helpers: &context.guard_helpers,
             fns: Vec::new(),
         };
         collector.visit_file(&context.ast);
@@ -62,6 +63,7 @@ impl Rule for StorageGriefing {
 
 struct Collector<'a> {
     abi: &'a AbiIndex,
+    guard_helpers: &'a [String],
     fns: Vec<FnInfo>,
 }
 
@@ -106,7 +108,7 @@ impl Collector<'_> {
         }
         // A caller-actor guard (self/owner/trusted-field check) funds or
         // authorizes the write: not attacker-funded storage.
-        if body_has_guard(body) {
+        if body_has_guard_with(body, self.guard_helpers) {
             return;
         }
         let mut probe = WriteProbe::default();

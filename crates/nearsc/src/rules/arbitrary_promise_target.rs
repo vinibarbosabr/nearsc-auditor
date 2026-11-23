@@ -19,7 +19,7 @@ use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
 use super::common::body_token_text;
-use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use super::{body_has_guard_with, last_segment_is, snippet_at, Rule};
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -42,7 +42,10 @@ impl Rule for ArbitraryPromiseTarget {
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            fns: Vec::new(),
+            guard_helpers: Some(context.guard_helpers.clone()),
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
@@ -51,6 +54,7 @@ impl Rule for ArbitraryPromiseTarget {
 #[derive(Default)]
 struct Collector {
     fns: Vec<FnInfo>,
+    guard_helpers: Option<Vec<String>>,
 }
 
 struct FnInfo {
@@ -139,7 +143,8 @@ impl Collector {
         let allowlisted = tokens.contains("allowlist")
             || tokens.contains("allowed")
             || tokens.contains("contains");
-        if allowlisted || body_has_guard(body) {
+        let guard_helpers = self.guard_helpers.as_deref().unwrap_or(&[]);
+        if allowlisted || body_has_guard_with(body, guard_helpers) {
             return;
         }
         self.fns.push(FnInfo {
