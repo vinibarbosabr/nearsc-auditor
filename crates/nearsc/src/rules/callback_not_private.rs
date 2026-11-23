@@ -8,7 +8,7 @@ use syn::visit::Visit;
 use syn::{Attribute, ImplItemFn, ItemFn};
 
 use super::common::callback_name;
-use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use super::{body_has_guard_with, last_segment_is, snippet_at, Rule};
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -25,18 +25,23 @@ impl Rule for CallbackNotPrivate {
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            then_callbacks: Vec::new(),
+            candidates: Vec::new(),
+            guard_helpers: &context.guard_helpers,
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
 }
 
-#[derive(Default)]
-struct Collector {
+struct Collector<'a> {
     /// Names passed to `.then(...)`.
     then_callbacks: Vec<String>,
     /// Every function defined in the file, with the attributes we care about.
     candidates: Vec<FnInfo>,
+    /// Crate-scoped guard-helper index (delegated caller checks).
+    guard_helpers: &'a [String],
 }
 
 struct FnInfo {
@@ -48,7 +53,7 @@ struct FnInfo {
     column: usize,
 }
 
-impl Collector {
+impl Collector<'_> {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
         let mut findings = Vec::new();
         for candidate in &self.candidates {
@@ -83,7 +88,7 @@ impl Collector {
         self.candidates.push(FnInfo {
             name: ident.to_string(),
             has_private: attrs.iter().any(|attr| last_segment_is(attr, "private")),
-            has_manual_guard: body_has_guard(body),
+            has_manual_guard: body_has_guard_with(body, self.guard_helpers),
             is_callback_attr: attrs.iter().any(|attr| {
                 last_segment_is(attr, "callback")
                     || last_segment_is(attr, "callback_result")
@@ -96,7 +101,7 @@ impl Collector {
     }
 }
 
-impl<'ast> Visit<'ast> for Collector {
+impl<'ast> Visit<'ast> for Collector<'ast> {
     fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
         if call.method == "then" {
             if let Some(arg) = call.args.first() {

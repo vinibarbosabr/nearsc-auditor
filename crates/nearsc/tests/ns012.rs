@@ -136,3 +136,56 @@ fn state_write_body_defers_to_ns006() {
     let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
     assert_eq!(ids, vec!["NS006"], "NS012 must defer to NS006: {ids:?}");
 }
+
+#[test]
+fn crate_scoped_chain_satisfies_the_rule() {
+    // The PotLock campaign shape (issue #83): the setter delegates through
+    // assert_admin_or_greater -> is_* chain defined in a sibling file of
+    // the same crate. The crate-scoped index must credit it.
+    let path = fixture("ns012/delegated_admin_chain");
+    let result = engine::scan_path(&path);
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    assert!(result.findings.is_empty(), "{:?}", result.findings);
+}
+
+#[test]
+fn chain_without_a_caller_check_stays_flagged() {
+    // Negative control: the chain's leaf checks configuration, not the
+    // caller. No credit anywhere in the chain; the setter stays a finding.
+    let path = fixture("ns012/delegated_chain_not_guard");
+    let result = engine::scan_path(&path);
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(
+        ids,
+        vec!["NS012"],
+        "broken chain must stay flagged: {ids:?}"
+    );
+}
+
+#[test]
+fn helper_in_a_sibling_crate_does_not_credit() {
+    // Isolation: the index is crate-scoped, never workspace-scoped; the
+    // helper in beta/ must not credit alpha's setter.
+    let path = fixture("ns012/crate_isolation/alpha");
+    let result = engine::scan_path(&path);
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(
+        ids,
+        vec!["NS012"],
+        "cross-crate credit is forbidden: {ids:?}"
+    );
+}

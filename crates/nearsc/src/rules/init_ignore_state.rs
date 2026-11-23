@@ -9,7 +9,7 @@
 use syn::visit::Visit;
 use syn::{ImplItemFn, ItemFn};
 
-use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use super::{body_has_guard_with, last_segment_is, snippet_at, Rule};
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -25,14 +25,17 @@ impl Rule for InitIgnoreState {
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            guard_helpers: &context.guard_helpers,
+            fns: Vec::new(),
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
 }
 
-#[derive(Default)]
-struct Collector {
+struct Collector<'a> {
+    guard_helpers: &'a [String],
     fns: Vec<FnInfo>,
 }
 
@@ -42,7 +45,7 @@ struct FnInfo {
     column: usize,
 }
 
-impl Collector {
+impl Collector<'_> {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
         self.fns
             .into_iter()
@@ -76,7 +79,7 @@ impl Collector {
             return;
         }
         let has_private = attrs.iter().any(|attr| last_segment_is(attr, "private"));
-        if has_private || body_has_guard(body) {
+        if has_private || body_has_guard_with(body, self.guard_helpers) {
             return;
         }
         let start = ident.span().start();
@@ -88,7 +91,7 @@ impl Collector {
     }
 }
 
-impl<'ast> Visit<'ast> for Collector {
+impl<'ast> Visit<'ast> for Collector<'_> {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
         self.push_fn(&item.sig.ident, &item.attrs, &item.block);
         syn::visit::visit_item_fn(self, item);

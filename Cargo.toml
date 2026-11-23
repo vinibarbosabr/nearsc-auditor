@@ -3,6 +3,9 @@ resolver = "2"
 members = ["crates/nearsc", "crates/nearsc-mcp"]
 exclude = ["examples/vulnerable-contract", "examples/fixed-contract"]
 
+[profile.release]
+overflow-checks = true
+
 [workspace.package]
 version = "0.1.2"
 edition = "2021"

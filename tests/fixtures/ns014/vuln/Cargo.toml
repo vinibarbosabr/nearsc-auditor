@@ -1,0 +1,6 @@
+[package]
+name = "vuln-fixture"
+version = "0.0.0"
+edition = "2021"
+
+# no [profile.release]: release arithmetic wraps

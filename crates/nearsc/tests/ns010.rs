@@ -90,3 +90,28 @@ fn example_contract_flags_exactly_one_promise_target() {
     assert_eq!(ns010.len(), 1, "{:?}", result.findings);
     assert!(ns010[0].message.contains("notify_receiver"));
 }
+
+#[test]
+fn free_refund_helper_is_not_a_finding_but_the_export_stays() {
+    let result = engine::scan_path(&fixture("ns010/free_refund_helper.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(ids, vec!["NS010"]);
+    assert!(result.findings[0].message.contains("payout"));
+}
+
+#[test]
+fn no_mangle_export_stays_flagged() {
+    let result = engine::scan_path(&fixture("ns010/no_mangle_param_target.rs"));
+    assert!(
+        result.parse_errors.is_empty(),
+        "unexpected parse errors: {:?}",
+        result.parse_errors
+    );
+    let ids: Vec<&str> = result.findings.iter().map(|f| f.rule_id).collect();
+    assert_eq!(ids, vec!["NS010"]);
+}

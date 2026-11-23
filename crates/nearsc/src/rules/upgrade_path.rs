@@ -15,7 +15,7 @@ use syn::visit::Visit;
 use syn::{ImplItemFn, ItemFn};
 
 use super::common::{body_token_text, body_writes_state};
-use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use super::{body_has_guard_with, last_segment_is, snippet_at, Rule};
 use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
@@ -45,6 +45,7 @@ impl Rule for UpgradePath {
     fn check(&self, context: &FileContext) -> Vec<Finding> {
         let mut collector = Collector {
             abi: &context.abi,
+            guard_helpers: &context.guard_helpers,
             fns: Vec::new(),
         };
         collector.visit_file(&context.ast);
@@ -54,6 +55,7 @@ impl Rule for UpgradePath {
 
 struct Collector<'a> {
     abi: &'a AbiIndex,
+    guard_helpers: &'a [String],
     fns: Vec<FnInfo>,
 }
 
@@ -92,7 +94,7 @@ impl Collector<'_> {
             return;
         }
         let has_private = attrs.iter().any(|attr| last_segment_is(attr, "private"));
-        if has_private || body_has_guard(body) {
+        if has_private || body_has_guard_with(body, self.guard_helpers) {
             return;
         }
         let writes_state = body_writes_state(body);

@@ -19,7 +19,8 @@ use syn::visit::Visit;
 use syn::{Expr, ImplItemFn, ItemFn};
 
 use super::common::body_token_text;
-use super::{body_has_guard, last_segment_is, snippet_at, Rule};
+use super::{body_has_guard_with, last_segment_is, snippet_at, Rule};
+use crate::abi::AbiIndex;
 use crate::engine::FileContext;
 use crate::finding::{Confidence, Finding, Severity};
 
@@ -42,15 +43,20 @@ impl Rule for ArbitraryPromiseTarget {
     }
 
     fn check(&self, context: &FileContext) -> Vec<Finding> {
-        let mut collector = Collector::default();
+        let mut collector = Collector {
+            abi: &context.abi,
+            fns: Vec::new(),
+            guard_helpers: &context.guard_helpers,
+        };
         collector.visit_file(&context.ast);
         collector.into_findings(context)
     }
 }
 
-#[derive(Default)]
-struct Collector {
+struct Collector<'a> {
+    abi: &'a AbiIndex,
     fns: Vec<FnInfo>,
+    guard_helpers: &'a [String],
 }
 
 struct FnInfo {
@@ -59,7 +65,7 @@ struct FnInfo {
     column: usize,
 }
 
-impl Collector {
+impl Collector<'_> {
     fn into_findings(self, context: &FileContext) -> Vec<Finding> {
         self.fns
             .into_iter()
@@ -88,6 +94,13 @@ impl Collector {
         sig: &syn::Signature,
         body: &syn::Block,
     ) {
+        // ABI gate (campaign fix, issue #83): free functions are reachable
+        // only through a raw `#[no_mangle]` export; the standards' refund
+        // helpers (`refund_approved_account_ids_iter`,
+        // `refund_deposit_to_account`) are not attacker-callable.
+        if !self.abi.is_exported(ident) {
+            return;
+        }
         let params: Vec<String> = sig
             .inputs
             .iter()
@@ -139,7 +152,8 @@ impl Collector {
         let allowlisted = tokens.contains("allowlist")
             || tokens.contains("allowed")
             || tokens.contains("contains");
-        if allowlisted || body_has_guard(body) {
+        let guard_helpers = self.guard_helpers;
+        if allowlisted || body_has_guard_with(body, guard_helpers) {
             return;
         }
         self.fns.push(FnInfo {
@@ -259,7 +273,7 @@ impl<'ast> Visit<'ast> for PromiseProbe {
     }
 }
 
-impl<'ast> Visit<'ast> for Collector {
+impl<'ast> Visit<'ast> for Collector<'_> {
     fn visit_item_fn(&mut self, item: &'ast ItemFn) {
         self.push_fn(&item.sig.ident, &item.attrs, &item.sig, &item.block);
         syn::visit::visit_item_fn(self, item);

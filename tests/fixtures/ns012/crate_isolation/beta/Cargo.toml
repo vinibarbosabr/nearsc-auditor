@@ -1,0 +1,9 @@
+# marker: fixture crate root (nearsc test fixture)
+
+[package]
+name = "beta-fixture"
+version = "0.0.0"
+edition = "2021"
+
+[profile.release]
+overflow-checks = true
