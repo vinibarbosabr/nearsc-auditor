@@ -38,6 +38,14 @@ pub struct ParseError {
     pub message: String,
 }
 
+/// Parsed view of one `Cargo.toml` manifest, shared by manifest rules.
+pub struct ManifestContext {
+    /// Path relative to the scan root, forward slashes.
+    pub file: String,
+    /// Raw manifest source (rules parse what they need; no execution).
+    pub manifest: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Summary {
     pub critical: usize,
@@ -128,12 +136,14 @@ pub fn scan_path_only(target: &Path, only: &[String]) -> ScanResult {
 /// group) and the guard-helper index is built per crate, so a setter that
 /// delegates its caller check to a sibling module of the same crate is
 /// credited (the PotLock campaign shape). A single `.rs` file keeps the
-/// v0.1 file-scoped semantics.
+/// v0.1 file-scoped semantics. Directory scans also collect every
+/// `Cargo.toml` manifest and run the manifest rules over each one.
 fn scan_with(
     target: &Path,
     check: impl Fn(&FileContext) -> Vec<Finding>,
 ) -> (Vec<Finding>, Vec<ParseError>) {
     let mut files = Vec::new();
+    let mut manifests = Vec::new();
     if target.is_file() {
         files.push(target.to_path_buf());
     } else {
@@ -143,10 +153,13 @@ fn scan_with(
             .filter_entry(|entry| entry.depth() == 0 || !is_skipped_dir(entry))
             .filter_map(|entry| entry.ok())
         {
-            if entry.file_type().is_file()
-                && entry.path().extension().and_then(|ext| ext.to_str()) == Some("rs")
-            {
-                files.push(entry.path().to_path_buf());
+            if entry.file_type().is_file() {
+                let path = entry.path().to_path_buf();
+                if path.extension().and_then(|ext| ext.to_str()) == Some("rs") {
+                    files.push(path);
+                } else if path.file_name().and_then(|name| name.to_str()) == Some("Cargo.toml") {
+                    manifests.push(path);
+                }
             }
         }
     }
@@ -213,6 +226,23 @@ fn scan_with(
             };
             findings.extend(check(&context));
         }
+    }
+
+    // Manifest rules run once per collected `Cargo.toml` (never for
+    // single-file `.rs` scans).
+    for manifest in &manifests {
+        let Ok(source) = std::fs::read_to_string(manifest) else {
+            parse_errors.push(ParseError {
+                file: rel_path(manifest, target),
+                message: "manifest unreadable".to_string(),
+            });
+            continue;
+        };
+        let context = ManifestContext {
+            file: rel_path(manifest, target),
+            manifest: source,
+        };
+        findings.extend(crate::rules::run_all_manifest(&context));
     }
     (findings, parse_errors)
 }

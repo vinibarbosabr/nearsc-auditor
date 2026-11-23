@@ -13,6 +13,7 @@ pub mod deposit_refund_missing;
 pub mod guard;
 pub mod init_ignore_state;
 pub mod insecure_randomness;
+pub mod manifest_overflow_checks;
 pub mod one_yocto_missing;
 pub mod privileged_setter;
 pub mod storage_griefing;
@@ -29,6 +30,17 @@ use crate::finding::Finding;
 pub trait Rule {
     fn id(&self) -> &'static str;
     fn check(&self, context: &FileContext) -> Vec<Finding>;
+}
+
+/// A manifest rule consumes one `Cargo.toml` of the scan.
+pub trait ManifestRule {
+    fn id(&self) -> &'static str;
+    fn check(&self, context: &crate::engine::ManifestContext) -> Vec<Finding>;
+}
+
+/// Every registered manifest rule.
+pub fn manifest_rules() -> &'static [&'static dyn ManifestRule] {
+    &[&manifest_overflow_checks::ManifestOverflowChecks]
 }
 
 /// Static catalog entry for the v0.1 rule set.
@@ -168,6 +180,15 @@ pub const CATALOG: &[RuleMeta] = &[
         status: "shipped",
         refs: &["https://github.com/near-daos/sputnik-dao-contract/issues/239"],
     },
+    RuleMeta {
+        id: "NS014",
+        title: "release-profile-overflow-checks",
+        severity: crate::finding::Severity::Medium,
+        confidence: crate::finding::Confidence::Heuristic,
+        matcher: Some("manifest_overflow_checks"),
+        status: "shipped",
+        refs: &["https://doc.rust-lang.org/cargo/reference/profiles.html"],
+    },
 ];
 
 /// Every registered rule, in catalog order. `run_all` and the parity test
@@ -193,6 +214,14 @@ pub fn rules() -> &'static [&'static dyn Rule] {
 /// Run every registered rule against one file.
 pub fn run_all(context: &FileContext) -> Vec<Finding> {
     rules()
+        .iter()
+        .flat_map(|rule| rule.check(context))
+        .collect()
+}
+
+/// Run every registered manifest rule against one `Cargo.toml`.
+pub fn run_all_manifest(context: &crate::engine::ManifestContext) -> Vec<Finding> {
+    manifest_rules()
         .iter()
         .flat_map(|rule| rule.check(context))
         .collect()

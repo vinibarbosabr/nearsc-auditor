@@ -723,6 +723,10 @@ mod tests {
     #[test]
     fn catalog_matches_the_registered_matchers() {
         let registered: Vec<&str> = crate::rules::rules().iter().map(|rule| rule.id()).collect();
+        let manifest_registered: Vec<&str> = crate::rules::manifest_rules()
+            .iter()
+            .map(|rule| rule.id())
+            .collect();
 
         for id in &registered {
             let entry = crate::rules::CATALOG
@@ -735,15 +739,23 @@ mod tests {
             .iter()
             .filter_map(|entry| entry.matcher)
         {
+            let in_rules = registered.contains(
+                &crate::rules::CATALOG
+                    .iter()
+                    .find(|candidate| candidate.matcher == Some(entry))
+                    .expect("entry")
+                    .id,
+            );
+            let in_manifest_rules = manifest_registered.contains(
+                &crate::rules::CATALOG
+                    .iter()
+                    .find(|candidate| candidate.matcher == Some(entry))
+                    .expect("entry")
+                    .id,
+            );
             assert!(
-                registered.contains(
-                    &crate::rules::CATALOG
-                        .iter()
-                        .find(|candidate| candidate.matcher == Some(entry))
-                        .expect("entry")
-                        .id
-                ),
-                "CATALOG claims matcher {entry} but run_all does not register a rule using it"
+                in_rules || in_manifest_rules,
+                "CATALOG claims matcher {entry} but run_all/run_all_manifest do not register a rule using it"
             );
         }
         for entry in crate::rules::CATALOG
